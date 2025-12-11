@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlojaBot · Reservas Rurales</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo-circle">AB</div>
+          <div class="brand-text">
+            <h1>AlojaBot</h1>
+            <span class="subtitle"
+              >Asistente de reservas · SQL · Info (RAG) · Meteo</span
+            >
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <!-- Columna principal: alojamientos + chat -->
+        <section class="main-pane">
+          <!-- Grid de alojamientos -->
+          <section class="aloj-section">
+            <div class="aloj-header">
+              <h2>Nuestros alojamientos en Cobisa</h2>
+              <p>Haz clic en un alojamiento para empezar una reserva.</p>
+            </div>
+            <div class="aloj-grid">
+              <!-- Apartamento Mercedes -->
+              <article
+                class="aloj-card"
+                data-aloj-nombre="Apartamento Mercedes"
+              >
+                <figure class="aloj-gallery" data-gallery="mercedes">
+                  <img
+                    class="aloj-main"
+                    src="img/mercedes-1.jpg"
+                    alt="Apartamento Mercedes en Cobisa"
+                  />
+                  <div class="aloj-thumbs">
+                    <img
+                      src="img/mercedes-1.jpg"
+                      data-src="img/mercedes-1.jpg"
+                      class="active"
+                      alt=""
+                    />
+                    <img
+                      src="img/mercedes-2.jpg"
+                      data-src="img/mercedes-2.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/mercedes-3.jpg"
+                      data-src="img/mercedes-3.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/mercedes-4.jpg"
+                      data-src="img/mercedes-4.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/mercedes-5.jpg"
+                      data-src="img/mercedes-5.jpg"
+                      alt=""
+                    />
+                  </div>
+                </figure>
+
+                <header>
+                  <h3>Apartamento Mercedes</h3>
+                  <span class="aloj-chip">Cobisa · Apartamento acogedor</span>
+                </header>
+                <p class="aloj-meta">
+                  4 huéspedes · 1 dormitorio + sofa cama · 1 baño
+                </p>
+                <p class="aloj-price">
+                  Desde <strong>125 €/noche</strong>
+                </p>
+              </article>
+
+              <!-- Apartamento los arcos -->
+              <article
+                class="aloj-card"
+                data-aloj-nombre="Apartamento los arcos"
+              >
+                <figure class="aloj-gallery" data-gallery="arcos">
+                  <img
+                    class="aloj-main"
+                    src="img/arcos-1.jpg"
+                    alt="Apartamento los arcos en Cobisa"
+                  />
+                  <div class="aloj-thumbs">
+                    <img
+                      src="img/arcos-1.jpg"
+                      data-src="img/arcos-1.jpg"
+                      class="active"
+                      alt=""
+                    />
+                    <img
+                      src="img/arcos-2.jpg"
+                      data-src="img/arcos-2.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/arcos-3.jpg"
+                      data-src="img/arcos-3.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/arcos-4.jpg"
+                      data-src="img/arcos-4.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/arcos-5.jpg"
+                      data-src="img/arcos-5.jpg"
+                      alt=""
+                    />
+                  </div>
+                </figure>
+
+                <header>
+                  <h3>Apartamento los arcos</h3>
+                  <span class="aloj-chip">Cobisa · Ideal para familias</span>
+                </header>
+                <p class="aloj-meta">
+                  6 huéspedes · 2 dormitorios + sofa cama · 1 baño
+                </p>
+                <p class="aloj-price">
+                  Desde <strong>135 €/noche</strong>
+                </p>
+              </article>
+
+              <!-- Casa Bruna -->
+              <article class="aloj-card" data-aloj-nombre="Casa Bruna">
+                <figure class="aloj-gallery" data-gallery="bruna">
+                  <img
+                    class="aloj-main"
+                    src="img/bruna-1.jpg"
+                    alt="Casa Bruna en Cobisa"
+                  />
+                  <div class="aloj-thumbs">
+                    <img
+                      src="img/bruna-1.jpg"
+                      data-src="img/bruna-1.jpg"
+                      class="active"
+                      alt=""
+                    />
+                    <img
+                      src="img/bruna-2.jpg"
+                      data-src="img/bruna-2.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/bruna-3.jpg"
+                      data-src="img/bruna-3.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/bruna-4.jpg"
+                      data-src="img/bruna-4.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/bruna-5.jpg"
+                      data-src="img/bruna-5.jpg"
+                      alt=""
+                    />
+                  </div>
+                </figure>
+
+                <header>
+                  <h3>Casa Bruna</h3>
+                  <span class="aloj-chip">Cobisa · Casa con encanto</span>
+                </header>
+                <p class="aloj-meta">
+                  6 huéspedes · 2 dormitorios + sofa cama · 1 baño
+                </p>
+                <p class="aloj-price">
+                  Desde <strong>140 €/noche</strong>
+                </p>
+              </article>
+
+              <!-- Casa La Calera -->
+              <article class="aloj-card" data-aloj-nombre="Casa La Calera">
+                <figure class="aloj-gallery" data-gallery="calera">
+                  <img
+                    class="aloj-main"
+                    src="img/calera-1.jpg"
+                    alt="Casa La Calera en Cobisa"
+                  />
+                  <div class="aloj-thumbs">
+                    <img
+                      src="img/calera-1.jpg"
+                      data-src="img/calera-1.jpg"
+                      class="active"
+                      alt=""
+                    />
+                    <img
+                      src="img/calera-2.jpg"
+                      data-src="img/calera-2.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/calera-3.jpg"
+                      data-src="img/calera-3.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/calera-4.jpg"
+                      data-src="img/calera-4.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/calera-5.jpg"
+                      data-src="img/calera-5.jpg"
+                      alt=""
+                    />
+                    <img
+                      src="img/calera-6.jpg"
+                      data-src="img/calera-6.jpg"
+                      alt=""
+                    />
+                  </div>
+                </figure>
+
+                <header>
+                  <h3>Casa La Calera</h3>
+                  <span class="aloj-chip">Cobisa · Terraza y vistas</span>
+                </header>
+                <p class="aloj-meta">
+                  6 huéspedes · 2 dormitorios + sofa cama · 1 baño
+                </p>
+                <p class="aloj-price">
+                  Desde <strong>130 €/noche</strong>
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <!-- Chat -->
+          <section class="chat-section">
+            <div id="chat" class="chat"></div>
+            <form id="composer" class="composer">
+              <input
+                id="msg"
+                type="text"
+                autocomplete="off"
+                placeholder="Escribe tu mensaje... (p. ej., '¿Qué hay para 4 personas del 12/07 al 14/07?')"
+              />
+              <button id="send" type="submit">Enviar</button>
+            </form>
+          </section>
+        </section>
+
+        <!-- Contenedores ocultos para mantener compatibilidad con el backend -->
+        <div style="display: none">
+          <div id="evidence"></div>
+          <div id="options"></div>
+          <div id="weather"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Plantillas de burbuja -->
+    <template id="tpl-user">
+      <div class="bubble user"><div class="content"></div></div>
+    </template>
+    <template id="tpl-bot">
+      <div class="bubble bot"><div class="content"></div></div>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

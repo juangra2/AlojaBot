@@ -1,0 +1,294 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --muted: #9aa4b2;
+  --text: #e6e9ef;
+  --accent: #4ea8de;
+  --accent-2: #8bd450;
+  --border: #232736;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  width: 100%;              /* ocupa todo el ancho disponible */
+  max-width: 1600px;        /* límite razonable en pantallas grandes */
+  margin: 0 auto;           /* centra el bloque en la página */
+  padding: 16px 24px 32px;  /* márgenes internos (izq/der) suaves */
+}
+
+
+
+/* --- Header / logo --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #070a10;
+}
+
+.brand-text h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.subtitle {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* --- Layout principal (una sola columna) --- */
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.main-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- Alojamientos --- */
+.aloj-section {
+  background: var(--panel);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px 14px 10px;
+}
+
+.aloj-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.aloj-header h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.aloj-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.aloj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.aloj-card {
+  background: #151823;
+  border-radius: 10px;
+  border: 1px solid #222638;
+  padding: 8px 8px 10px;
+  cursor: pointer;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+    border-color 0.12s;
+  display: flex;
+  flex-direction: column;
+}
+
+.aloj-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  border-color: var(--accent);
+}
+
+.aloj-card h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.aloj-chip {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(78, 168, 222, 0.12);
+  color: var(--muted);
+}
+
+.aloj-meta {
+  margin: 6px 0 4px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.aloj-price {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* Galería dentro de la tarjeta */
+.aloj-gallery {
+  width: 100%;
+  margin: 0 0 8px 0;
+}
+
+.aloj-main {
+  width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Tira de miniaturas */
+.aloj-thumbs {
+  margin-top: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.aloj-thumbs img {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  object-fit: cover;
+  opacity: 0.6;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.aloj-thumbs img.active {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+/* --- Chat --- */
+.chat-section {
+  background: var(--panel);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 380px;
+  height: 60vh;
+}
+
+.chat {
+  background: #0f1115;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.composer input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 15px;
+  padding: 10px;
+}
+
+.composer button {
+  background: var(--accent);
+  color: #081019;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.composer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Burbujas */
+.bubble {
+  max-width: 82%;
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.bubble.user {
+  margin-left: auto;
+  background: #263145;
+  border: 1px solid #2f3b54;
+}
+
+.bubble.bot {
+  margin-right: auto;
+  background: #1b202b;
+  border: 1px solid #242a3a;
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .app {
+    padding: 12px;
+  }
+
+  .chat-section {
+    height: auto;
+  }
+}

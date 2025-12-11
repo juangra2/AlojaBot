@@ -1,0 +1,32 @@
+
+para inicar fastAPI --> uvicorn api.main:app --reload --port 8000
+
+para iniciar web --> python -m http.server 8080
+
+web --> http://localhost:8080/
+
+
+
+Preguntas -- Pruebas
+
+¿Qué hay del 25/12/2025 al 26/12/2025 para 2 personas?
+¿Qué hay para 4 personas del 12/07 al 14/07?
+¿Qué tiempo hará del 12/07 al 14/07?
+Busca para 4 del 12/07 al 14/07 y dime si lloverá
+¿La Casa del Mar tiene aire acondicionado y restaurantes cerca?
+
+
+Multichat
+
+Resérvame del 12/07/2025 al 14/07/2025
+
+Para 4 y es la Casa del Mar Cabanyal
+
+A nombre de Laura Gómez, email laura@gomez.es, teléfono 600 123 456
+
+Sí, confirma
+
+
+
+API KEY:
+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

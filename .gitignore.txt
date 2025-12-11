@@ -1,0 +1,15 @@
+# Carpetas de entorno / compilación
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Configuración de editor
+.vscode/
+.idea/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
