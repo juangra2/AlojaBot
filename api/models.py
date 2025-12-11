@@ -6,7 +6,6 @@ class ChatIn(BaseModel):
     message: str
     session_id: str | None = None
 
-
 class ChatOut(BaseModel):
     answer: str | None = None
     evidence: list | None = None
