@@ -95,16 +95,17 @@ def get_forecast_summary_for_range(
         check_in = today
 
     # 3) Demasiado lejos en el futuro
-    days_ahead = (check_in - today).days
-    if days_ahead > FORECAST_MAX_DAYS:
+    end = check_out - timedelta(days=1)
+    max_ahead = (end - today).days
+    if max_ahead > FORECAST_MAX_DAYS:
         return (
             "🌤️ Los modelos de predicción solo llegan aproximadamente a "
             f"{FORECAST_MAX_DAYS} días vista. Para esas fechas aún no hay "
             "datos de pronóstico disponibles."
         )
 
+
     start = check_in
-    end = check_out - timedelta(days=1)
 
     lat, lon = get_coords_for_aloj(aloj_id)
 
