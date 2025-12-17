@@ -6,27 +6,40 @@ para iniciar web --> python -m http.server 8080
 web --> http://localhost:8080/
 
 
+🟢 Conversación 1 — Info + RAG (apartamento concreto)
 
-Preguntas -- Pruebas
+¿Cómo es el Apartamento Mercedes?
 
-¿Qué hay del 25/12/2025 al 26/12/2025 para 2 personas?
-¿Qué hay para 4 personas del 12/07 al 14/07?
+🟢 Conversación 2 — Info de entorno (Cobisa / Toledo / planes)
+
+¿Qué se puede hacer cerca de Cobisa?
+
+🟢 Conversación 3 — Búsqueda por fechas (SQL sobre Excel)
+
+Usuario
+
+¿Qué hay disponible para 4 personas del 20/07 al 22/07?
+
+🟢 Conversación 4 — Reserva multivuelta (flujo completo)
+
+Quiero reservar Casa La Calera
+
+🟢 Conversación 5 — Meteo real con Open-Meteo
+
 ¿Qué tiempo hará del 12/07 al 14/07?
-Busca para 4 del 12/07 al 14/07 y dime si lloverá
-¿La Casa del Mar tiene aire acondicionado y restaurantes cerca?
+
+(Open-Meteo)
+
+🟢 Conversación 6 — Meteo usando contexto de la reserva
+
+(Justo después de crear una reserva)
+
+¿Y qué tiempo hará?
 
 
-Multichat
-
-Resérvame del 12/07/2025 al 14/07/2025
-
-Para 4 y es la Casa del Mar Cabanyal
-
-A nombre de Laura Gómez, email laura@gomez.es, teléfono 600 123 456
-
-Sí, confirma
 
 
 
 API KEY:
 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
+

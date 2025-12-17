@@ -1,0 +1,11 @@
+# Cambios que tengo que hacer si o si
+ - Que disponibilidad tienes de .....
+ - Actualizar excels de calendario y reservas
+  - Modificar interfaz escalable
+
+# Pasos a futuro
+ - Orquestador de conversaciones con gpt, para que entienda mejor al usuario, ya que ahora va por regex y hay verbos que no entiende, detectar intenciones, mejorar naturalidad
+ - Pasar Excels a SQL?
+ - Diseño de logica de usuario y admin? algo asi
+
+
