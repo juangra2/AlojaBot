@@ -280,6 +280,69 @@
       <div class="bubble bot"><div class="content"></div></div>
     </template>
 
+    <!-- Modal detalle alojamiento -->
+    <div id="alojModal" class="modal" aria-hidden="true">
+      <div class="modal__overlay" data-close="1"></div>
+
+      <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal__close" type="button" aria-label="Cerrar" data-close="1">✕</button>
+
+        <div class="modal__content">
+          <div class="modal__media">
+            <img id="modalMainImg" class="modal__mainimg" src="" alt="Foto del alojamiento" />
+            <div id="modalThumbs" class="modal__thumbs"></div>
+          </div>
+
+          <div class="modal__info">
+            <h2 id="modalTitle" class="modal__title"></h2>
+
+            <p id="modalMeta" class="modal__meta"></p>
+            <p id="modalPrice" class="modal__price"></p>
+
+            <div class="modal__block">
+              <h3>Descripción</h3>
+              <p id="modalDesc" class="modal__desc"></p>
+            </div>
+
+            <div class="modal__block">
+              <h3>Amenities</h3>
+              <p id="modalAmenities" class="modal__amenities"></p>
+            </div>
+
+            <div class="modal__block">
+            <h3>Disponibilidad</h3>
+
+            <div class="cal" id="modalCal">
+              <div class="cal__toolbar">
+                <button type="button" class="cal__nav" id="calPrev">‹</button>
+                <div class="cal__title" id="calTitle">—</div>
+                <button type="button" class="cal__nav" id="calNext">›</button>
+              </div>
+
+              <div class="cal__week">
+                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+              </div>
+
+              <div class="cal__grid" id="calGrid"></div>
+
+              <div class="cal__legend">
+                <span class="dot free"></span> libre
+                <span class="dot busy"></span> ocupado
+              </div>
+
+              <div class="cal__msg" id="calMsg" style="display:none"></div>
+            </div>
+          </div>
+
+            <div class="modal__actions">
+              <button id="modalReserveBtn" type="button" class="modal__reserve">
+                Reservar este alojamiento
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> 
     <script src="app.js"></script>
   </body>
 </html>

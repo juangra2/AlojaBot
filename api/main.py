@@ -1,11 +1,11 @@
 # api/main.py
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .domain_reservas import encontrar_aloj_por_nombre
+from .domain_reservas import encontrar_aloj_por_nombre, aloj_id_by_name, month_availability
 
 from .utils_nlu import (
     strip_accents,
@@ -148,4 +148,17 @@ def chat(inp: ChatIn):
 
     # 6) Por defecto, bot informativo (RAG + LLM sobre el corpus)
     return info_bot_llm(text)
+
+@app.get("/aloj_id")
+def get_aloj_id(name: str = Query(..., min_length=1)):
+    aid = aloj_id_by_name(name)
+    return {"ok": bool(aid), "id": aid}
+
+@app.get("/availability")
+def get_availability(
+    id_aloj: int,
+    year: int,
+    month: int,
+):
+    return month_availability(id_aloj, year, month)
 

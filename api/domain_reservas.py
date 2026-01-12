@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 from datetime import date, timedelta
 
 import pandas as pd
+import calendar as _cal
 
 from .config import (
     load_alojamientos_calendario,
@@ -579,4 +580,72 @@ def modificar_reserva_excel(
         "descuento_pct": disc,
         "precio_noche_final": pn_final,
 
+    }
+
+def aloj_id_by_name(name: str) -> int | None:
+    """Devuelve el id del alojamiento por nombre (robusto a mayúsculas/acentos)."""
+    from .utils_nlu import strip_accents
+    aloj, _ = load_alojamientos_calendario()
+    target = strip_accents((name or "").strip().lower())
+    if not target:
+        return None
+    for _, r in aloj.iterrows():
+        n = strip_accents(str(r.get("nombre", "")).strip().lower())
+        if n == target:
+            return int(r.get("id"))
+    # fallback: contiene
+    for _, r in aloj.iterrows():
+        n = strip_accents(str(r.get("nombre", "")).strip().lower())
+        if n and n in target:
+            return int(r.get("id"))
+    return None
+
+
+def month_availability(id_aloj: int, year: int, month: int) -> dict:
+    """
+    Devuelve estados por día (YYYY-MM-DD -> 'libre'/'ocupado') para un mes.
+    Si un día no existe en calendario.xlsx, lo consideramos 'libre' (como en hay_disponibilidad).
+    """
+    _, cal = load_alojamientos_calendario()
+    cal_cp = cal.copy()
+
+    # Normaliza columnas
+    if "fecha" in cal_cp.columns:
+        cal_cp["fecha"] = pd.to_datetime(cal_cp["fecha"], errors="coerce").dt.date
+    else:
+        cal_cp["fecha"] = pd.NaT
+
+    if "id_alojamiento" in cal_cp.columns:
+        cal_cp["id_alojamiento"] = pd.to_numeric(cal_cp["id_alojamiento"], errors="coerce")
+    else:
+        cal_cp["id_alojamiento"] = pd.NA
+
+    cal_cp["estado"] = cal_cp.get("estado", "").fillna("").astype(str).str.lower()
+
+    first = date(year, month, 1)
+    last_day = _cal.monthrange(year, month)[1]
+    last = date(year, month, last_day)
+
+    sub = cal_cp[cal_cp["id_alojamiento"] == float(id_aloj)]
+    sub = sub[(sub["fecha"] >= first) & (sub["fecha"] <= last)]
+
+    # Mapa fecha -> estado (si hay varias filas por error, nos quedamos con la última)
+    map_estado = {}
+    for _, r in sub.iterrows():
+        f = r.get("fecha")
+        if isinstance(f, date):
+            map_estado[f.isoformat()] = (r.get("estado") or "libre").lower()
+
+    days = {}
+    d = first
+    while d <= last:
+        iso = d.isoformat()
+        days[iso] = map_estado.get(iso, "libre")
+        d += timedelta(days=1)
+
+    return {
+        "id_alojamiento": id_aloj,
+        "year": year,
+        "month": month,
+        "days": days,
     }
