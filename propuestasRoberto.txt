@@ -7,25 +7,42 @@
 
 # Pasos a futuro
  - Orquestador de conversaciones con gpt, para que entienda mejor al usuario, ya que ahora va por regex y hay verbos que no entiende, detectar intenciones, mejorar naturalidad
- - Diseño de logica de usuario y admin? algo asi
+
+No vamos a hacer SQL al final, nos quedamos con EXCEL
+
+Añadir DNI para reservar y meterlo en el excel de reservas como nueva columna
+
+Que cuando hable de 09/02 por ejemplo ahora ya piense que es de 2026, ahora mismo piensa que es 2025
+
+Hacer interfaz escalable
+
+al clicar hacer mas grande el apartamento, para ver fotos y tal
+
+añadir windspeed a meteobot
+
+Para cancelar por id y gmail/dni/nie, y asegurarse, ahora mismo puede cancelar cualquier persona
+
+Capa para no sacar datos personales
+
+Responde siempre en el idioma que te hablen
+
+meteo -> decir donde es el tiempo, ahora mismo no pone de donde es el tiempo, aunque todos los apartamentos son el cobisa que lo ponga
+
+descuentos, reglas de negocio, descuento por tiempo de aqui a 10 dias y tal, cada dia mas cercano mas descuento, asi hariamos que cuando no tenemos nada reservado y queda nada para que ya no se pueda reservar bajariamos el precio y con ello podriamos rellenar el apartamento
 
 
-al clicar hacer mas grande
 
-windspeed
+------------------------------------------------------------------------------------------
 
-ir uno a uno en reservas, para cancelar por id y gmail/dni/nie, y asegurarse 
+Idea diferente para sacar 10 en TFM
 
-capa para no sacar datos personales
+Un apartado de la web solo para admins, Usuario y contraseña que yo sepa, y ahi pueda ver en tablas las reservas que tiene, y añadir otro chat bot para el admin, cuanto he facturado, graficas y tal . /admin actualziar precios.
 
-responde siempre en el idioma que te hablen
 
-meteo -> decir donde es el tiempo
 
-descuentos, reglas de negocio, descuento por tiempo de aqui a 15 dias y tal. cada dia mas cercano mas descuento
+------------------------------------------------------------------------------------------
 
-estudio de personas - todas las correcciones 
+estudio de personas - todas las correcciones // probar con personas reales
 
 audio al final
 
-otro chat bot para el admin, cuanto he facturado, graficas y tal . /admin actualziar precios.

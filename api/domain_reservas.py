@@ -16,6 +16,10 @@ from .config import (
     next_reserva_id,
 )
 
+from .privacy import mask_email, mask_phone, mask_dni
+from .pricing import dynamic_discount_pct, apply_discount
+
+
 
 # ---------- Búsqueda básica ----------
 
@@ -99,6 +103,7 @@ def crear_reserva_excel(
     cliente_nombre: str | None = None,
     cliente_email: str | None = None,
     cliente_tel: str | None = None,
+    cliente_dni: str | None = None,
 ) -> int:
     df_res = load_reservas().copy()
     expected_cols = {
@@ -109,9 +114,13 @@ def crear_reserva_excel(
         "huespedes",
         "precio_total",
         "estado",
+        "precio_noche_base",
+        "descuento_pct",
+        "precio_noche_final",
         "cliente_nombre",
         "cliente_email",
         "cliente_tel",
+        "cliente_dni",
         "created_at",
     }
     for c in expected_cols - set(df_res.columns):
@@ -168,25 +177,35 @@ def crear_reserva_excel(
 
     # Nueva reserva
     rid = next_reserva_id(df_res)
+
     noches = max(1, (check_out - check_in).days)
-    total = round(noches * float(precio_noche), 2)
-    nueva = pd.DataFrame(
-        [
-            {
-                "id": rid,
-                "id_alojamiento": id_aloj,
-                "check_in": cin_ts,
-                "check_out": cout_ts,
-                "huespedes": huespedes,
-                "precio_total": total,
-                "estado": "creada",
-                "cliente_nombre": cliente_nombre or "",
-                "cliente_email": cliente_email or "",
-                "cliente_tel": cliente_tel or "",
-                "created_at": now,
-            }
-        ]
-    )
+
+    pn_base = float(precio_noche)
+    disc = float(dynamic_discount_pct(check_in))       
+    pn_final = float(apply_discount(pn_base, disc))      
+    total = round(noches * pn_final, 2)
+
+    nueva = pd.DataFrame([{
+        "id": rid,
+        "id_alojamiento": id_aloj,
+        "check_in": cin_ts,
+        "check_out": cout_ts,
+        "huespedes": huespedes,
+        "precio_total": total,
+        "estado": "creada",
+
+        "precio_noche_base": pn_base,     
+        "descuento_pct": disc,             
+        "precio_noche_final": pn_final,    
+
+        "cliente_nombre": cliente_nombre or "",
+        "cliente_email": cliente_email or "",
+        "cliente_tel": cliente_tel or "",
+        "cliente_dni": cliente_dni or "",
+        "created_at": now,
+    }])
+
+
     df_res = pd.concat([df_res, nueva], ignore_index=True)
     df_res.to_excel(RES_XLSX, index=False)
 
@@ -239,6 +258,15 @@ def load_reservas_normalized() -> pd.DataFrame:
         df["cliente_email"] = (
             df["cliente_email"].fillna("").str.strip().str.lower()
         )
+    if "cliente_dni" in df.columns:
+        df["cliente_dni"] = (
+            df["cliente_dni"]
+            .fillna("")
+            .astype(str)
+            .str.upper()
+            .str.replace(r"[\s\-]", "", regex=True)
+            .str.strip()
+        )
     return df
 
 
@@ -274,36 +302,67 @@ def list_reservas_by_email(
     df = df.sort_values("check_in").head(max_items)
     return df.to_dict(orient="records")
 
+def _safe_int(x) -> int | None:
+    try:
+        if x is None or (isinstance(x, float) and pd.isna(x)):
+            return None
+        return int(float(x))
+    except Exception:
+        return None
+
 
 def format_reserva_row(row: dict) -> str:
-    rid = int(row.get("id"))
-    id_aloj = int(row.get("id_alojamiento"))
-    nombre = nombre_de(id_aloj)
+    rid = row.get("id")
+    aloj = (row.get("alojamiento") or row.get("nombre_alojamiento") or "").strip()
+    if not aloj:
+        id_aloj = _safe_int(row.get("id_alojamiento"))
+        if id_aloj is not None:
+            aloj = nombre_de(id_aloj)
+        else:
+            aloj = "(sin alojamiento)"
 
-    cin = (
-        pd.to_datetime(row.get("check_in")).date()
-        if row.get("check_in")
-        else None
-    )
-    cout = (
-        pd.to_datetime(row.get("check_out")).date()
-        if row.get("check_out")
-        else None
-    )
-    noches = (cout - cin).days if (cin and cout) else 0
+    ci = row.get("check_in")
+    co = row.get("check_out")
+    hues = row.get("huespedes")
+    total = row.get("precio_total")
+    estado = row.get("estado")
 
-    hues = int(row.get("huespedes") or 0)
-    estado = str(row.get("estado") or "").lower() or "desconocido"
-    estado_pretty = estado.capitalize()
-    total = float(row.get("precio_total") or 0.0)
+    try:
+        ci = pd.to_datetime(ci).date()
+    except Exception:
+        pass
 
-    return (
-        f"ID {rid} · {nombre}\n"
-        f"📅 Fechas: {cin} → {cout} ({noches} noche(s))\n"
-        f"👥 Huéspedes: {hues}\n"
-        f"🔖 Estado: {estado_pretty}\n"
-        f"💶 Total: {total} €"
-    )
+    try:
+        co = pd.to_datetime(co).date()
+    except Exception:
+        pass
+
+    # sensibles (NO se muestran completos)
+    email_m = mask_email(row.get("cliente_email"))
+    tel_m = mask_phone(row.get("cliente_tel"))
+    dni_m = mask_dni(row.get("cliente_dni"))
+
+    lines = [
+        f"🧾 Reserva {rid}",
+        f"🏡 Alojamiento: {aloj}",
+        f"📅 Fechas: {ci} → {co}",
+        f"👥 Huéspedes: {hues}",
+        f"💶 Total: {total} €",
+        f"📌 Estado: {estado}",
+    ]
+
+    # Si quieres, muestra que “hay datos” pero enmascarados:
+    extras = []
+    if email_m:
+        extras.append(f"📧 Email: {email_m}")
+    if tel_m:
+        extras.append(f"📞 Tel: {tel_m}")
+    if dni_m:
+        extras.append(f"🪪 DNI/NIE: {dni_m}")
+    if extras:
+        lines.append("🔒 Datos (ocultos): " + " · ".join(extras))
+
+    return "\n".join(lines)
 
 
 def cancelar_reserva_excel(reserva_id: int) -> dict:
@@ -448,13 +507,25 @@ def modificar_reserva_excel(
 
     # Actualiza reservas.xlsx
     noches = max(1, (cout - cin).days)
-    pn = precio_noche_de(id_aloj)
-    total = round(noches * pn, 2)
+    pn_base = float(precio_noche_de(id_aloj))
+    disc = float(dynamic_discount_pct(cin))
+    pn_final = float(apply_discount(pn_base, disc))
+    total = round(noches * pn_final, 2)
+
+    # asegúrate de que existan columnas si el excel es viejo
+    for c in ("precio_noche_base", "descuento_pct", "precio_noche_final"):
+        if c not in df.columns:
+            df[c] = pd.NA
+
 
     df.loc[mask, "check_in"] = pd.Timestamp(cin)
     df.loc[mask, "check_out"] = pd.Timestamp(cout)
     df.loc[mask, "huespedes"] = hues
     df.loc[mask, "precio_total"] = total
+    df.loc[mask, "precio_noche_base"] = pn_base
+    df.loc[mask, "descuento_pct"] = disc
+    df.loc[mask, "precio_noche_final"] = pn_final
+
     df.to_excel(RES_XLSX, index=False)
 
     # Actualiza calendario: liberar antiguo rango + bloquear nuevo
@@ -504,4 +575,8 @@ def modificar_reserva_excel(
         "check_out": cout,
         "huespedes": hues,
         "precio_total": total,
+        "precio_noche_base": pn_base,
+        "descuento_pct": disc,
+        "precio_noche_final": pn_final,
+
     }

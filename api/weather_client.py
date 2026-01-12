@@ -65,6 +65,23 @@ def get_coords_for_aloj(id_aloj: int | None) -> tuple[float, float]:
 
     return DEFAULT_LAT, DEFAULT_LON
 
+def get_place_label(aloj_id: int | None) -> str:
+    df = _load_alojamientos()
+    if df is None or df.empty:
+        return "Cobisa (Toledo)"
+
+    if aloj_id is not None and "id" in df.columns and "nombre" in df.columns:
+        row = df.loc[df["id"] == aloj_id]
+        if not row.empty:
+            nombre = str(row.iloc[0]["nombre"])
+            loc = str(row.iloc[0].get("localidad") or "Cobisa")
+            return f"{nombre} — {loc} (Toledo)"
+
+    # fallback
+    loc = str(df.iloc[0].get("localidad") or "Cobisa")
+    return f"{loc} (Toledo)"
+
+
 
 def get_forecast_summary_for_range(
     check_in: date,
@@ -119,6 +136,8 @@ def get_forecast_summary_for_range(
                 "temperature_2m_min",
                 "precipitation_sum",
                 "precipitation_probability_max",
+                "wind_speed_10m_max",
+                "wind_gusts_10m_max",
             ]
         ),
         "timezone": DEFAULT_TZ,
@@ -149,6 +168,9 @@ def get_forecast_summary_for_range(
     tmin = daily.get("temperature_2m_min") or []
     precip = daily.get("precipitation_sum") or []
     prob = daily.get("precipitation_probability_max") or []
+    wind = daily.get("wind_speed_10m_max") or []
+    gust = daily.get("wind_gusts_10m_max") or []
+
 
     if not times or not tmax or not tmin:
         return (
@@ -156,12 +178,16 @@ def get_forecast_summary_for_range(
             "Prueba con un rango más cercano en el tiempo."
         )
 
-    n = min(len(times), len(tmax), len(tmin))
+    n = min(len(times), len(tmax), len(tmin), len(wind) or 10**9, len(gust) or 10**9)
     tmax = tmax[:n]
     tmin = tmin[:n]
     precip = precip[:n] if precip else [0.0] * n
     prob = prob[:n] if prob else [None] * n
+    wind = wind[:n] if wind else [None] * n
+    gust = gust[:n] if gust else [None] * n
 
+    wind_vals = [w for w in wind if w is not None]
+    gust_vals = [g for g in gust if g is not None]
     max_max = round(max(tmax), 1)
     min_min = round(min(tmin), 1)
     avg_max = round(sum(tmax) / n, 1)
@@ -185,12 +211,22 @@ def get_forecast_summary_for_range(
 
     if total_precip is not None and total_precip > 0:
         lluvia_txt += f" (precipitación acumulada ~ {total_precip} mm)"
+    
+    wind_txt = ""
+    if wind_vals:
+        wind_txt = f"\n- 💨 Viento máx aprox.: {round(max(wind_vals),1)} km/h"
+        if gust_vals:
+            wind_txt += f" (rachas hasta {round(max(gust_vals),1)} km/h)"
 
     rango_fechas = f"{start} → {end}"
 
+    place = get_place_label(aloj_id)
+
     return (
+        f"📍 Lugar: {place}\n"
         f"🌤️ Pronóstico aproximado para esas fechas ({rango_fechas}):\n"
         f"- Temperaturas máximas ~ {avg_max} °C (entre {min(tmax)} y {max_max} °C)\n"
         f"- Temperaturas mínimas ~ {avg_min} °C (entre {min_min} y {max(tmin)} °C)\n"
         f"- Tiempo {lluvia_txt}."
+        f"{wind_txt}"
     )

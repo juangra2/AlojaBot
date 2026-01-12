@@ -44,6 +44,13 @@ MIS_RESERVAS_RE = re.compile(r"\bmis\s+reservas\b", re.I)
 CANCEL_RESERVA_RE = re.compile(r"(cancela\w*|anula\w*).*(reserv)", re.I)
 MODIF_RESERVA_RE = re.compile(r"(modifica\w*|cambia\w*|mueve\w*).*(reserv)", re.I)
 
+# DNI
+DNI_RE = re.compile(r"\b(\d{8}[A-Z])\b", re.I)
+NIE_RE = re.compile(r"\b([XYZ]\d{7}[A-Z])\b", re.I)
+
+# Fechas
+DATE_RE = re.compile(r"\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b")
+
 # Extraer ID de reserva tipo "reserva 12", "reserva nº 12"
 RESERVA_ID_RE = re.compile(r"reserva\s*(?:n[ºo.]*)?\s*(\d+)", re.I)
 
@@ -58,6 +65,35 @@ PRICE_MIN_RE = re.compile(
 PRICE_RANGE_RE = re.compile(
     r"(?:entre)\s*(\d{2,4})\s*(?:€|euros)?\s*y\s*(\d{2,4})\s*(?:€|euros)?", re.I
 )
+
+def parse_date_es(d: int, m: int, y: int | None) -> date | None:
+    today = date.today()
+
+    # Año explícito
+    if y is not None:
+        # 2 dígitos -> 20xx (simple)
+        if y < 100:
+            y = 2000 + y
+        try:
+            return date(int(y), int(m), int(d))
+        except ValueError:
+            return None
+
+    # Sin año -> inferir
+    year = today.year
+    try:
+        cand = date(year, int(m), int(d))
+    except ValueError:
+        return None
+
+    # Si ya pasó, movemos al siguiente año
+    if cand < today:
+        try:
+            cand = date(year + 1, int(m), int(d))
+        except ValueError:
+            return None
+
+    return cand
 
 
 def extract_slots(t: str) -> dict:
@@ -77,21 +113,29 @@ def extract_slots(t: str) -> dict:
     # --- Fechas (dd/mm[/aaaa] o dd-mm) ---
     f = re.findall(r"(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)", t)
 
-    def parse(d):
+    def parse(d: str):
         try:
             p = d.replace("-", "/").split("/")
             dd, mm = int(p[0]), int(p[1])
-            yy = date.today().year
-            if len(p) == 3:
-                yy = int(p[2]) if int(p[2]) > 31 else 2000 + int(p[2])
-            return date(yy, mm, dd)
+            today = date.today()
+
+            # Año explícito
+            if len(p) == 3 and p[2].strip():
+                yy_raw = int(p[2])
+                yy = yy_raw if yy_raw > 31 else 2000 + yy_raw  # 2 dígitos -> 20xx
+                return date(yy, mm, dd)
+
+            # Sin año -> inferir (año actual; si ya pasó -> año siguiente)
+            cand = date(today.year, mm, dd)
+            if cand < today:
+                cand = date(today.year + 1, mm, dd)
+            return cand
+
         except Exception:
             return None
 
     parsed = list(filter(None, map(parse, f)))
-    check_in, check_out = (
-        (parsed[0], parsed[1]) if len(parsed) >= 2 else (None, None)
-    )
+    check_in, check_out = (parsed[0], parsed[1]) if len(parsed) >= 2 else (None, None)
 
     # --- Precio ---
     price_min = price_max = None
@@ -123,6 +167,17 @@ def extract_slots(t: str) -> dict:
     cliente_tel = re.sub(r"\s+", "", m_tel.group(1)) if m_tel else None
 
     cliente_nombre = None
+
+    raw = t.upper().replace(" ", "").replace("-", "")
+
+    cliente_dni = None
+    m_nie = NIE_RE.search(raw)
+    m_dni = DNI_RE.search(raw)
+
+    if m_nie:
+        cliente_dni = m_nie.group(1).upper()
+    elif m_dni:
+        cliente_dni = m_dni.group(1).upper()
 
     # 1) "a nombre de Juan", "soy Juan"
     m_nombre = re.search(
@@ -180,9 +235,7 @@ def extract_slots(t: str) -> dict:
             }
             first_norm = strip_accents(words[0].lower())
             if first_norm not in blocked_first:
-                if all(
-                    re.fullmatch(r"[a-záéíóúüñ'.-]+", w, re.I) for w in words
-                ):
+                if all(re.fullmatch(r"[a-záéíóúüñ'.-]+", w, re.I) for w in words):
                     cliente_nombre = solo
 
     return {
@@ -195,5 +248,7 @@ def extract_slots(t: str) -> dict:
         "cliente_nombre": cliente_nombre,
         "cliente_email": cliente_email,
         "cliente_tel": cliente_tel,
+        "cliente_dni": cliente_dni,
         "raw_text": text,
     }
+

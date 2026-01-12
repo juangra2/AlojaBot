@@ -61,7 +61,7 @@ def info_bot_llm(user_message: str) -> Dict[str, Any]:
         "siempre basándote en el contexto.\n"
         "- Si te preguntan por qué hacer en Cobisa/Toledo o por Puy du Fou, usa "
         "la información del contexto sobre entorno, restaurantes y planes.\n"
-        "- Organiza la respuesta en 1–3 párrafos cortos o una lista de puntos clara. "
+        "- Organiza la respuesta en 13 párrafos cortos o una lista de puntos clara. "
         "Evita respuestas muy largas."
     )
 

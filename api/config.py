@@ -46,6 +46,7 @@ def load_reservas():
             "cliente_nombre",
             "cliente_email",
             "cliente_tel",
+            "cliente_dni",
             "created_at",
         ]
     )
