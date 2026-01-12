@@ -1,11 +1,31 @@
 # Cambios que tengo que hacer si o si
  - Que disponibilidad tienes de .....
  - Actualizar excels de calendario y reservas
-  - Modificar interfaz escalable
+ - Modificar interfaz escalable
+ - Pedir DNI y mas cosas que me diga Alonso
+ - Mejorar corpus / añadir cosas -> minusvalia
 
 # Pasos a futuro
  - Orquestador de conversaciones con gpt, para que entienda mejor al usuario, ya que ahora va por regex y hay verbos que no entiende, detectar intenciones, mejorar naturalidad
- - Pasar Excels a SQL?
  - Diseño de logica de usuario y admin? algo asi
 
 
+al clicar hacer mas grande
+
+windspeed
+
+ir uno a uno en reservas, para cancelar por id y gmail/dni/nie, y asegurarse 
+
+capa para no sacar datos personales
+
+responde siempre en el idioma que te hablen
+
+meteo -> decir donde es el tiempo
+
+descuentos, reglas de negocio, descuento por tiempo de aqui a 15 dias y tal. cada dia mas cercano mas descuento
+
+estudio de personas - todas las correcciones 
+
+audio al final
+
+otro chat bot para el admin, cuanto he facturado, graficas y tal . /admin actualziar precios.
