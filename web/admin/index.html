@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin · AlojaBot</title>
+    <link rel="stylesheet" href="admin.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Chart.js (para gráficas) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo-circle">AB</div>
+          <div class="brand-text">
+            <h1>Admin · AlojaBot</h1>
+            <span class="subtitle">Panel de gestión</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="btnLogout" class="btn btn-ghost" type="button" style="display:none;">
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- LOGIN (vertical + logo) -->
+      <section id="loginView" class="card login-card">
+        <div class="login-left">
+          <div class="login-logo">
+            <div class="logo-circle logo-circle-lg">AB</div>
+            <div>
+              <h2>Acceso administración</h2>
+              <p class="muted">Login simple (hardcoded) para demo.</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <label class="label">Usuario</label>
+          <input id="loginUser" class="input" autocomplete="username" placeholder="admin" />
+
+          <label class="label">Password</label>
+          <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="••••••••" />
+
+          <button class="btn btn-primary" type="submit">Entrar</button>
+
+          <p id="loginErr" class="error" style="display:none;"></p>
+        </form>
+      </section>
+
+      <!-- DASHBOARD -->
+      <main id="dashView" class="dash" style="display:none;">
+        <!-- FILA 1 -->
+        <section class="grid-top">
+          <!-- MÉTRICAS -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Métricas</h3>
+
+              <div class="controls">
+                <select id="metricsScope" class="select">
+                  <option value="month">Mes</option>
+                  <option value="year">Año</option>
+                  <option value="all">Todo</option>
+                </select>
+
+                <select id="metricsYear" class="select"></select>
+                <select id="metricsMonth" class="select"></select>
+
+                <button id="btnRefreshMetrics" class="btn btn-secondary" type="button">
+                  Actualizar
+                </button>
+              </div>
+            </div>
+
+            <div class="kpis">
+              <div class="kpi">
+                <div class="kpi-label">Facturación</div>
+                <div id="kpiRevenue" class="kpi-value">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Ocupación</div>
+                <div id="kpiOcc" class="kpi-value">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Reservas (check-in)</div>
+                <div id="kpiRes" class="kpi-value">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">ADR</div>
+                <div id="kpiAdr" class="kpi-value">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">RevPAR</div>
+                <div id="kpiRevpar" class="kpi-value">—</div>
+              </div>
+              <div class="kpi">
+                <div class="kpi-label">Top alojamiento</div>
+                <div id="kpiTop" class="kpi-value">—</div>
+              </div>
+            </div>
+
+            <div class="chart-wrap">
+              <div class="chart-head">
+                <div class="muted">Gráfica</div>
+                <select id="chartType" class="select">
+                  <option value="revenue">Facturación por meses</option>
+                  <option value="occupancy">Ocupación por meses</option>
+                </select>
+              </div>
+              <div class="chart-canvas">
+                <canvas id="chartCanvas"></canvas>
+              </div>
+              <p class="muted small">
+                *La gráfica usa el año seleccionado (scope “Mes” o “Año”). Para “Todo”, se usa el año actual.
+              </p>
+            </div>
+          </div>
+
+          <!-- CHAT ADMIN -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Chat admin (LLM)</h3>
+              <div class="muted small">Pregunta cosas tipo: “¿Cuánto facturé en 2026?”, “Grafica la facturación 2026”, “Top alojamiento este mes”…</div>
+            </div>
+
+            <div id="adminChat" class="chatbox"></div>
+
+            <form id="adminComposer" class="composer">
+              <textarea id="adminMsg" class="textarea" rows="3" placeholder="Ej: Grafica la facturación por meses de 2026"></textarea>
+              <button class="btn btn-primary" type="submit">Enviar</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- FILA 2 -->
+        <section class="card">
+          <div class="card-header">
+            <h3>Reservas</h3>
+            <div class="controls">
+              <select id="resScope" class="select">
+                <option value="month">Mes</option>
+                <option value="year">Año</option>
+                <option value="all">Todas</option>
+                <option value="range">Rango</option>
+              </select>
+
+              <select id="resYear" class="select"></select>
+              <select id="resMonth" class="select"></select>
+
+              <input id="resFrom" class="input" type="date" style="display:none;" />
+              <input id="resTo" class="input" type="date" style="display:none;" />
+
+              <select id="resEstado" class="select">
+                <option value="creada">creada</option>
+                <option value="cancelada">cancelada</option>
+                <option value="all">todas</option>
+              </select>
+
+              <button id="btnLoadRes" class="btn btn-secondary" type="button">Cargar</button>
+              <button id="btnExportCsv" class="btn btn-ghost" type="button">Exportar CSV</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="resTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Alojamiento</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Noches</th>
+                  <th>Huéspedes</th>
+                  <th>Total (€)</th>
+                  <th>Estado</th>
+                  <th>Cliente</th>
+                  <th>Email</th>
+                  <th>Tel</th>
+                  <th>DNI/NIE</th>
+                  <th>Creada</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- MODAL editar -->
+        <div id="editModal" class="modal" aria-hidden="true">
+          <div class="modal__overlay" data-close="1"></div>
+          <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <button class="modal__close" type="button" data-close="1">✕</button>
+
+            <div class="modal__body">
+              <h3 id="editTitle">Modificar reserva</h3>
+              <p id="editSub" class="muted"></p>
+
+              <div class="edit-grid">
+                <div>
+                  <label class="label">Nuevo check-in</label>
+                  <input id="editIn" class="input" type="date" />
+                </div>
+                <div>
+                  <label class="label">Nuevo check-out</label>
+                  <input id="editOut" class="input" type="date" />
+                </div>
+                <div>
+                  <label class="label">Huéspedes</label>
+                  <input id="editGuests" class="input" type="number" min="1" />
+                </div>
+              </div>
+
+              <div class="edit-actions">
+                <button id="btnEditSave" class="btn btn-primary" type="button">Guardar</button>
+                <button class="btn btn-ghost" type="button" data-close="1">Cancelar</button>
+              </div>
+
+              <p id="editErr" class="error" style="display:none;"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL cancelar -->
+        <div id="cancelModal" class="modal" aria-hidden="true">
+          <div class="modal__overlay" data-close="1"></div>
+          <div class="modal__dialog modal__dialog-sm" role="dialog" aria-modal="true" aria-labelledby="cancelTitle">
+            <button class="modal__close" type="button" data-close="1">✕</button>
+
+            <div class="modal__body">
+              <h3 id="cancelTitle">Cancelar reserva</h3>
+              <p id="cancelSub" class="muted"></p>
+
+              <div class="edit-actions">
+                <button id="btnCancelYes" class="btn btn-primary" type="button">Sí, cancelar</button>
+                <button class="btn btn-ghost" type="button" data-close="1">Volver</button>
+              </div>
+
+              <p id="cancelErr" class="error" style="display:none;"></p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="admin.js"></script>
+  </body>
+</html>

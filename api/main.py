@@ -40,12 +40,13 @@ from .session_flows import (
 from .bots_info import info_bot_llm
 from .bots_sql import sql_buscar_bot
 from .bots_meteo import meteo_bot
-
-# ⚠️ Ajusta este import si en tu proyecto el nombre es otro
 from .llm_client import chat_llm
-
+from .admin_routes import router as admin_router
 
 app = FastAPI(title="AlojaBot API (Excel + Reservas + Meteo + LLM Orquestador)")
+
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
+
 
 app.add_middleware(
     CORSMiddleware,
