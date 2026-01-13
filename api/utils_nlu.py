@@ -5,8 +5,7 @@ from datetime import date
 import re
 import unicodedata
 
-from .config import daterange  # por si se quiere usar aquí en el futuro
-
+from .config import daterange  # (no se usa ahora, pero lo dejamos por compat)
 
 def strip_accents(s: str) -> str:
     return "".join(
@@ -15,63 +14,125 @@ def strip_accents(s: str) -> str:
         if unicodedata.category(c) != "Mn"
     )
 
+# =========================
+# Intenciones (multi-idioma)
+# =========================
 
-# --- Patrones de intención (sobre texto sin acentos) ---
 WEATHER_RE = re.compile(
-    r"(lluvia|llover\w*|tiempo|clima|grados|temperatura|meteo)", re.I
-)
-TRANS_RE = re.compile(
     r"("
-    r"reserv\w*"                       # reservar, reserva...
-    r"|confirm\w*"                     # confirmar...
-    r"|cancel\w*"                      # cancelar...
-    r"|busc\w*"                        # busca, buscando...
-    r"|disponibl\w*"                   # disponibilidad, disponible...
-    r"|est[aá]\s+libre"                # está libre
-    r"|hay\s+alg[uú]n?\s+sitio"        # hay algún sitio
-    r"|quiero\s+(algo|un\s+alojamiento|una\s+casa)"  # quiero algo / un alojamiento...
-    r"|para\s+\d+\s*(personas|hu[eé]spedes|pax)"     # para 4 personas...
+    r"lluvia|llover\w*|tiempo|clima|grados|temperatura|meteo|viento|racha\w*"
+    r"|weather|forecast|rain|wind|windy|temperature|meteo"
     r")",
     re.I,
 )
-RESERVA_RE = re.compile(r"\breserv\w*|\bbook\w*", re.I)
-CONFIRM_RE = re.compile(r"\b(s[ií]|ok|vale|confirm\w*|adelante|hecho)\b", re.I)
-CANCEL_RE = re.compile(r"\b(no|cancela\w*|anula\w*|mejor no)\b", re.I)
 
+TRANS_RE = re.compile(
+    r"("
+    r"reserv\w*|reserva\w*|book\w*|booking|reservation|"
+    r"cancel\w*|anul\w*|"
+    r"modifica\w*|cambia\w*|mueve\w*|reschedul\w*|change\w*|modify\w*|move\w*|"
+    r"busc\w*|find\w*|search\w*|looking\s+for|"
+    r"disponibl\w*|availability|available|free\s+(dates|days)|is\s+.*free|"
+    r"est[aá]\s+libre|hay\s+alg[uú]n?\s+sitio|"
+    r"quiero\s+(algo|un\s+alojamiento|una\s+casa)|"
+    r"for\s+\d+\s*(guests?|people|persons?|pax)|"
+    r"para\s+\d+\s*(personas|hu[eé]spedes|pax)|"
+    r"check[-\s]?in|check[-\s]?out"
+    r")",
+    re.I,
+)
+
+# Reservar explícito (incluye inglés)
+RESERVA_RE = re.compile(r"\b(reserv\w*|book\w*|booking|reservation)\b", re.I)
+
+# Confirm / Cancel (multi-idioma)
+CONFIRM_RE = re.compile(
+    r"\b("
+    r"s[ií]|vale|ok|okay|confirm\w*|adelante|hecho|"
+    r"yes|yep|yeah|sure|go\s+ahead"
+    r")\b",
+    re.I,
+)
+
+CANCEL_RE = re.compile(
+    r"\b("
+    r"no|nope|cancel\w*|anula\w*|cancela\w*|stop|abort|never\s+mind|mejor\s+no"
+    r")\b",
+    re.I,
+)
+
+# =========================
 # Intenciones post-reserva
-CONSULTA_RE = re.compile(r"(consulta\w*|ver|ensena\w*|muestra\w*|que tengo).*(reserv)", re.I)
-MIS_RESERVAS_RE = re.compile(r"\bmis\s+reservas\b", re.I)
-CANCEL_RESERVA_RE = re.compile(r"(cancela\w*|anula\w*).*(reserv)", re.I)
-MODIF_RESERVA_RE = re.compile(r"(modifica\w*|cambia\w*|mueve\w*).*(reserv)", re.I)
+# =========================
 
-# DNI
+CONSULTA_RE = re.compile(
+    r"("
+    r"(consulta\w*|ver|ensena\w*|muestra\w*|que\s+tengo).*(reserv)"
+    r"|"
+    r"(show|see|list|check).*(reservation|booking)"
+    r")",
+    re.I,
+)
+
+MIS_RESERVAS_RE = re.compile(
+    r"(\bmis\s+reservas\b|\bmy\s+reservations\b|\bmy\s+bookings\b)", re.I
+)
+
+CANCEL_RESERVA_RE = re.compile(
+    r"("
+    r"(cancela\w*|anula\w*).*(reserv)"
+    r"|"
+    r"(cancel\w*).*(reservation|booking)"
+    r")",
+    re.I,
+)
+
+MODIF_RESERVA_RE = re.compile(
+    r"("
+    r"(modifica\w*|cambia\w*|mueve\w*).*(reserv)"
+    r"|"
+    r"(modify|change|move|reschedule).*(reservation|booking)"
+    r")",
+    re.I,
+)
+
+# =========================
+# DNI / NIE
+# =========================
 DNI_RE = re.compile(r"\b(\d{8}[A-Z])\b", re.I)
 NIE_RE = re.compile(r"\b([XYZ]\d{7}[A-Z])\b", re.I)
 
+# =========================
 # Fechas
+# =========================
 DATE_RE = re.compile(r"\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b")
 
-# Extraer ID de reserva tipo "reserva 12", "reserva nº 12"
-RESERVA_ID_RE = re.compile(r"reserva\s*(?:n[ºo.]*)?\s*(\d+)", re.I)
+# ID reserva: "reserva 12", "reservation 12", "booking 12", "reserva nº 12"
+RESERVA_ID_RE = re.compile(
+    r"\b(?:reserva|reservation|booking)\s*(?:n[ºo.]*)?\s*(\d+)\b",
+    re.I,
+)
 
-
-# --- Slots numéricos (precio) ---
+# =========================
+# Precio
+# =========================
 PRICE_MAX_RE = re.compile(
-    r"(?:menos de|hasta|m[aá]ximo)\s*(\d{2,4})\s*(?:€|euros)?", re.I
+    r"(?:menos de|hasta|m[aá]ximo|under|below|max)\s*(\d{2,4})\s*(?:€|euros)?",
+    re.I,
 )
 PRICE_MIN_RE = re.compile(
-    r"(?:m[aá]s de|al menos|m[ií]nimo)\s*(\d{2,4})\s*(?:€|euros)?", re.I
+    r"(?:m[aá]s de|al menos|m[ií]nimo|from|at least|min)\s*(\d{2,4})\s*(?:€|euros)?",
+    re.I,
 )
 PRICE_RANGE_RE = re.compile(
-    r"(?:entre)\s*(\d{2,4})\s*(?:€|euros)?\s*y\s*(\d{2,4})\s*(?:€|euros)?", re.I
+    r"(?:entre|between)\s*(\d{2,4})\s*(?:€|euros)?\s*(?:y|and)\s*(\d{2,4})\s*(?:€|euros)?",
+    re.I,
 )
 
 def parse_date_es(d: int, m: int, y: int | None) -> date | None:
     today = date.today()
 
-    # Año explícito
     if y is not None:
-        # 2 dígitos -> 20xx (simple)
         if y < 100:
             y = 2000 + y
         try:
@@ -79,14 +140,12 @@ def parse_date_es(d: int, m: int, y: int | None) -> date | None:
         except ValueError:
             return None
 
-    # Sin año -> inferir
     year = today.year
     try:
         cand = date(year, int(m), int(d))
     except ValueError:
         return None
 
-    # Si ya pasó, movemos al siguiente año
     if cand < today:
         try:
             cand = date(year + 1, int(m), int(d))
@@ -95,49 +154,54 @@ def parse_date_es(d: int, m: int, y: int | None) -> date | None:
 
     return cand
 
-
 def extract_slots(t: str) -> dict:
-    """Extrae fechas, pax, precios, id de alojamiento y datos de cliente."""
-    text = t.lower()
+    """Extrae fechas, pax, precios, id de alojamiento y datos de cliente (ES/EN)."""
+    text = t.lower().strip()
 
-    # --- Huéspedes ---
+    # -----------------
+    # Huéspedes (ES/EN)
+    # -----------------
     guests = None
-    g1 = re.search(r"\b(\d+)\s*(personas|hu[eé]spedes|pax)\b", text)
-    g2 = re.search(r"\bpara\s+(\d+)\b", text)
-    g3 = re.search(r"\bsomos\s+(\d+)\b", text)
-    for g in (g1, g2, g3):
-        if g:
-            guests = int(g.group(1))
+
+    patterns = [
+        r"\b(\d+)\s*(personas|hu[eé]spedes|pax)\b",
+        r"\bpara\s+(\d+)\b",
+        r"\bsomos\s+(\d+)\b",
+        r"\b(\d+)\s*(guests?|people|persons?)\b",
+        r"\bfor\s+(\d+)\b",  # "book ... for 4"
+        r"\bwe\s+are\s+(\d+)\b",
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            guests = int(m.group(1))
             break
 
-    # --- Fechas (dd/mm[/aaaa] o dd-mm) ---
-    f = re.findall(r"(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)", t)
+    # Si el mensaje es SOLO un número (típico: "4")
+    if guests is None:
+        only = text.replace(" ", "")
+        if only.isdigit():
+            n = int(only)
+            # limite razonable para no confundir con ID reserva (y tus alojamientos son <= 6)
+            if 1 <= n <= 12:
+                guests = n
 
-    def parse(d: str):
-        try:
-            p = d.replace("-", "/").split("/")
-            dd, mm = int(p[0]), int(p[1])
-            today = date.today()
+    # -----------------
+    # Fechas (dd/mm[/aaaa] o dd-mm)
+    # -----------------
+    matches = DATE_RE.findall(t)
+    parsed: list[date] = []
+    for dd, mm, yy in matches:
+        y = int(yy) if yy else None
+        d = parse_date_es(int(dd), int(mm), y)
+        if d:
+            parsed.append(d)
 
-            # Año explícito
-            if len(p) == 3 and p[2].strip():
-                yy_raw = int(p[2])
-                yy = yy_raw if yy_raw > 31 else 2000 + yy_raw  # 2 dígitos -> 20xx
-                return date(yy, mm, dd)
-
-            # Sin año -> inferir (año actual; si ya pasó -> año siguiente)
-            cand = date(today.year, mm, dd)
-            if cand < today:
-                cand = date(today.year + 1, mm, dd)
-            return cand
-
-        except Exception:
-            return None
-
-    parsed = list(filter(None, map(parse, f)))
     check_in, check_out = (parsed[0], parsed[1]) if len(parsed) >= 2 else (None, None)
 
-    # --- Precio ---
+    # -----------------
+    # Precio
+    # -----------------
     price_min = price_max = None
     r = PRICE_RANGE_RE.search(text)
     if r:
@@ -150,45 +214,48 @@ def extract_slots(t: str) -> dict:
             price_max = int(mmax.group(1))
         if mmin:
             price_min = int(mmin.group(1))
+
     if ("barato" in text or "económ" in text) and price_max is None:
         price_max = 100
 
-    # --- Alojamiento id (opcional) ---
+    # -----------------
+    # Alojamiento id (opcional)
+    # -----------------
     aloj_id = None
     m_id = re.search(r"(?:id\s*|alojamiento\s*#?\s*)(\d{1,4})", text)
     if m_id:
         aloj_id = int(m_id.group(1))
 
-    # --- Datos de cliente (email, teléfono, nombre) ---
+    # -----------------
+    # Datos cliente: email / tel / dni-nie / nombre
+    # -----------------
     m_email = re.search(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}", t, re.I)
     cliente_email = m_email.group(0) if m_email else None
 
     m_tel = re.search(r"\b(\+?\d[\d\s\-]{7,}\d)\b", t)
     cliente_tel = re.sub(r"\s+", "", m_tel.group(1)) if m_tel else None
 
-    cliente_nombre = None
-
     raw = t.upper().replace(" ", "").replace("-", "")
-
     cliente_dni = None
     m_nie = NIE_RE.search(raw)
     m_dni = DNI_RE.search(raw)
-
     if m_nie:
         cliente_dni = m_nie.group(1).upper()
     elif m_dni:
         cliente_dni = m_dni.group(1).upper()
 
-    # 1) "a nombre de Juan", "soy Juan"
+    cliente_nombre = None
+
+    # 1) "a nombre de Juan", "soy Juan", "my name is Juan", "i'm Juan"
     m_nombre = re.search(
-        r"(?:a nombre de|soy|somos)\s+([a-záéíóúüñ][a-záéíóúüñ\s'.-]{2,})",
+        r"(?:a nombre de|soy|somos|mi nombre es|my name is|i am|i'm|this is)\s+([a-záéíóúüñ][a-záéíóúüñ\s'.-]{2,})",
         t,
         re.I,
     )
     if m_nombre:
         cliente_nombre = m_nombre.group(1).strip()
 
-    # 2) Nombre antes del email: "... , Juan Grau, juan@mail.com"
+    # 2) Nombre antes del email
     if not cliente_nombre and m_email:
         before_email = t[: m_email.start()]
         segments = [seg.strip(" ;:-") for seg in before_email.split(",")]
@@ -197,7 +264,6 @@ def extract_slots(t: str) -> dict:
             if seg:
                 last_segment = seg
                 break
-
         if last_segment and re.fullmatch(
             r"[a-záéíóúüñ][a-záéíóúüñ\s'.-]{2,}",
             last_segment,
@@ -215,23 +281,14 @@ def extract_slots(t: str) -> dict:
         if m_nom_tag:
             cliente_nombre = m_nom_tag.group(1).strip()
 
-    # 4) Mensaje que es solo un nombre corto: "Juan", "Juan Grau"
+    # 4) Mensaje corto que parece solo un nombre
     if not cliente_nombre:
         solo = t.strip()
         words = solo.split()
         if 1 <= len(words) <= 4:
             blocked_first = {
-                "quiero",
-                "busco",
-                "hola",
-                "buenos",
-                "buenas",
-                "necesito",
-                "me",
-                "que",
-                "q",
-                "reservar",
-                "reserva",
+                "quiero","busco","hola","buenos","buenas","necesito","me","que","q",
+                "reservar","reserva","book","booking","reservation","cancel","modify","change",
             }
             first_norm = strip_accents(words[0].lower())
             if first_norm not in blocked_first:
@@ -252,3 +309,67 @@ def extract_slots(t: str) -> dict:
         "raw_text": text,
     }
 
+# =========================
+# Idioma (detección ligera + persistencia)
+# =========================
+
+LANG_FORCE_EN_RE = re.compile(r"\b(in\s+english|english\s+please|en\s+ingles)\b", re.I)
+LANG_FORCE_ES_RE = re.compile(r"\b(en\s+espanol|en\s+español|castellano|in\s+spanish)\b", re.I)
+
+_EN_HINTS = {
+    "book", "booking", "reservation", "cancel", "change", "modify", "move", "reschedule",
+    "from", "to", "for", "guests", "people", "please", "confirm", "yes", "no",
+    "checkin", "checkout", "available", "availability", "weather", "forecast",
+}
+
+_ES_HINTS = {
+    "reserva", "reservar", "cancelar", "cancela", "anular", "anula", "modificar", "modifica",
+    "cambiar", "cambia", "mover", "mueve", "del", "al", "para", "huespedes", "huéspedes",
+    "disponible", "disponibilidad", "tiempo", "clima", "lluvia", "pronostico", "pronóstico",
+    "confirmar", "confirmo", "si", "sí", "no", "vale", "ok",
+}
+
+def detect_lang(user_text: str, prev_lang: str | None = None) -> str:
+    """
+    Detecta 'en' o 'es' con heurística simple.
+    IMPORTANTÍSIMO: si el mensaje no tiene "señal lingüística" (solo email/teléfono/dni/números),
+    mantiene el idioma anterior para evitar que el flujo cambie de idioma.
+    """
+    prev = prev_lang or "es"
+    t = (user_text or "").strip()
+    if not t:
+        return prev
+
+    norm = strip_accents(t.lower())
+
+    # Forzado explícito
+    if LANG_FORCE_EN_RE.search(norm):
+        return "en"
+    if LANG_FORCE_ES_RE.search(norm):
+        return "es"
+
+    # Si es un mensaje "de datos" (email/teléfono/dni/fechas/números), mantenemos el idioma anterior
+    # Quitamos emails, teléfonos, DNI/NIE, fechas y números, y miramos si queda algo "de palabras"
+    scrubbed = norm
+    scrubbed = re.sub(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", " ", scrubbed, flags=re.I)
+    scrubbed = re.sub(r"\b\+?\d[\d\s\-]{7,}\d\b", " ", scrubbed)       # teléfono
+    scrubbed = re.sub(r"\b\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?\b", " ", scrubbed)  # fechas
+    scrubbed = re.sub(r"\b(\d{8}[a-z])\b", " ", scrubbed, flags=re.I) # DNI
+    scrubbed = re.sub(r"\b([xyz]\d{7}[a-z])\b", " ", scrubbed, flags=re.I) # NIE
+    scrubbed = re.sub(r"[\d,;:+\-./()]+", " ", scrubbed)
+
+    words = re.findall(r"[a-záéíóúüñ]+", scrubbed, flags=re.I)
+    # Si apenas hay palabras reales -> no recalcular idioma
+    if len(words) < 2:
+        return prev
+
+    en_score = sum(1 for w in words if w in _EN_HINTS)
+    es_score = sum(1 for w in words if w in _ES_HINTS)
+
+    if en_score > es_score:
+        return "en"
+    if es_score > en_score:
+        return "es"
+
+    # Empate / dudoso -> mantenemos el anterior
+    return prev

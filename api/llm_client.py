@@ -25,20 +25,29 @@ def _get_client() -> OpenAI:
 def chat_llm(
     system_prompt: str,
     user_prompt: str,
+    *,
+    model: str | None = None,
     temperature: float = 0.2,
     max_tokens: int = 600,
 ) -> str:
     """
     Envía un mensaje al modelo configurado y devuelve SOLO el texto de respuesta.
 
-    - system_prompt: instrucciones de rol (quién eres, qué puedes hacer).
-    - user_prompt: mensaje del usuario + contexto (por ejemplo, trozos del corpus).
+    Args:
+      - system_prompt: instrucciones de rol (quién eres, qué puedes hacer).
+      - user_prompt: mensaje del usuario + contexto (por ejemplo, chunks del corpus).
+      - model: opcional. Si no se pasa, usa LLM_MODEL de config_llm.py
+      - temperature, max_tokens: parámetros del modelo
+
+    Returns:
+      Texto (string). Si hay error, devuelve un mensaje usable para el usuario.
     """
     client = _get_client()
+    use_model = model or LLM_MODEL
 
     try:
         resp = client.chat.completions.create(
-            model=LLM_MODEL,
+            model=use_model,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -54,9 +63,8 @@ def chat_llm(
             f"(Detalle técnico interno: {type(e).__name__})"
         )
 
-    # Extraemos el texto de la primera respuesta
-    if not resp.choices:
+    if not getattr(resp, "choices", None):
         return "⚠️ No he recibido respuesta del modelo en esta ocasión."
 
     content = resp.choices[0].message.content
-    return content or "⚠️ La respuesta del modelo ha llegado vacía."
+    return (content or "").strip() or "⚠️ La respuesta del modelo ha llegado vacía."

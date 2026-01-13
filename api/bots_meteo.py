@@ -25,12 +25,7 @@ def meteo_bot(slots: Dict, session_id: str | None = None) -> Dict:
         aloj_id = aloj_id or last.get("aloj_id")
 
     if not (cin and cout):
-        return {
-            "weather": (
-                "🌤️ Dime las fechas de entrada y salida para mirar "
-                "el pronóstico."
-            )
-        }
+        return {"weather": "🌤️ Dime las fechas de entrada y salida para mirar el pronóstico.", "needs_dates": True}
 
     summary = get_forecast_summary_for_range(cin, cout, aloj_id=aloj_id)
-    return {"weather": summary}
+    return {"weather": summary, "needs_dates": False}
