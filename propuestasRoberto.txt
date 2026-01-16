@@ -46,3 +46,6 @@ estudio de personas - todas las correcciones // probar con personas reales
 
 audio al final
 
+------------------------------------------------------------------------------------------
+
+BLOQUEAR FECHAS

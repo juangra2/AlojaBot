@@ -196,7 +196,7 @@ Mejor jerarquía visual
 
 Esto ya lo llevas muy avanzado.
 
-1️⃣1️⃣ Click → apartamento en grande (modal / detalle)
+1️⃣1️⃣ Click → apartamento en grande (modal / detalle) + Calendario
 
 Muy visual, pero:
 
