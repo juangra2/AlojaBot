@@ -6,7 +6,12 @@ from typing import Optional
 
 import pandas as pd
 
-from .admin_store import load_reservas_df, load_calendario_df, load_alojamientos_df, aloj_name_by_id
+from .admin_store import (
+    load_reservas_df,
+    load_calendario_df,
+    load_alojamientos_df,
+    aloj_name_by_id,
+)
 
 
 def _month_range(year: int, month: int) -> tuple[date, date]:
@@ -39,6 +44,7 @@ def _filter_df(
     month: int,
     date_from: Optional[str],
     date_to: Optional[str],
+    aloj_id: Optional[int],
 ) -> tuple[pd.DataFrame, Optional[date], Optional[date]]:
     df = load_reservas_df()
     if df.empty:
@@ -48,6 +54,16 @@ def _filter_df(
     est = (estado or "all").strip().lower()
     if est != "all" and "estado" in df.columns:
         df = df[df["estado"].astype(str).str.strip().str.lower() == est]
+
+    # Filtro por alojamiento (server-side)
+    if aloj_id and "id_alojamiento" in df.columns:
+        try:
+            aid = int(aloj_id)
+            col = pd.to_numeric(df["id_alojamiento"], errors="coerce").fillna(-1).astype(int)
+            df = df[col == aid]
+        except Exception:
+            # si viene algo raro, no filtramos (no rompemos)
+            pass
 
     start = end = None
 
@@ -77,8 +93,9 @@ def list_reservas_filtered(
     month: int,
     date_from: Optional[str],
     date_to: Optional[str],
+    aloj_id: Optional[int] = None,
 ) -> list[dict]:
-    df, _, _ = _filter_df(scope, estado, year, month, date_from, date_to)
+    df, _, _ = _filter_df(scope, estado, year, month, date_from, date_to, aloj_id)
     if df.empty:
         return []
 
@@ -149,13 +166,13 @@ def get_reserva_by_id(reserva_id: int) -> Optional[dict]:
     }
 
 
-def compute_metrics(scope: str, year: int, month: int) -> dict:
-    # Para métricas usamos solo reservas "creada" (si quieres incluir canceladas, cambia aquí)
-    df, start, end = _filter_df(scope, "creada", year, month, None, None)
+
+def compute_metrics(scope: str, year: int, month: int, aloj_id: Optional[int] = None) -> dict:
+    # Para métricas usamos solo reservas "creada"
+    df, start, end = _filter_df(scope, "creada", year, month, None, None, aloj_id=aloj_id)
 
     revenue = float(df["precio_total"].sum()) if (not df.empty and "precio_total" in df.columns) else 0.0
 
-    # noches ocupadas desde reservas
     occ_nights = 0
     if not df.empty and "check_in" in df.columns and "check_out" in df.columns:
         for _, r in df.iterrows():
@@ -166,11 +183,15 @@ def compute_metrics(scope: str, year: int, month: int) -> dict:
 
     adr = (revenue / occ_nights) if occ_nights > 0 else 0.0
 
-    # ocupación global con calendario si hay rango; si no, aproximamos con reservas
     aloj = load_alojamientos_df()
-    n_aloj = int(aloj["id"].dropna().nunique()) if (not aloj.empty and "id" in aloj.columns) else 1
-    if n_aloj <= 0:
+
+    # Si filtras por un alojamiento concreto, la ocupación debe dividir entre 1 alojamiento
+    if aloj_id:
         n_aloj = 1
+    else:
+        n_aloj = int(aloj["id"].dropna().nunique()) if (not aloj.empty and "id" in aloj.columns) else 1
+        if n_aloj <= 0:
+            n_aloj = 1
 
     occupancy = 0.0
     revpar = 0.0
@@ -183,30 +204,37 @@ def compute_metrics(scope: str, year: int, month: int) -> dict:
         occ_days = 0
         if not cal.empty and {"fecha", "estado"}.issubset(set(cal.columns)):
             sub = cal[(cal["fecha"] >= start) & (cal["fecha"] < end) & (cal["estado"] == "ocupado")]
+
+            # Si el calendario tiene id_alojamiento y estamos filtrando, aplicamos filtro también
+            if aloj_id and "id_alojamiento" in sub.columns:
+                sub = sub[pd.to_numeric(sub["id_alojamiento"], errors="coerce").fillna(-1).astype(int) == int(aloj_id)]
+
             occ_days = int(len(sub))
 
-        # fallback: si calendario está vacío, usa noches de reservas
         if occ_days == 0 and occ_nights > 0:
             occ_days = occ_nights
 
         occupancy = (occ_days / total_available) if total_available > 0 else 0.0
         revpar = (revenue / total_available) if total_available > 0 else 0.0
     else:
-        # scope "all": sin rango, devolvemos ocupación/revpar como 0 (o podrías estimarlo)
         occupancy = 0.0
         revpar = 0.0
 
     reservas_checkin = int(len(df)) if not df.empty else 0
 
-    # top alojamiento
+    # top alojamiento (si filtras por aloj_id, el top es ese)
     top_name = None
     top_rev = 0.0
-    if not df.empty and {"id_alojamiento", "precio_total"}.issubset(df.columns):
-        grp = df.groupby("id_alojamiento")["precio_total"].sum().sort_values(ascending=False)
-        if len(grp) > 0:
-            top_id = int(grp.index[0])
-            top_rev = float(grp.iloc[0])
-            top_name = aloj_name_by_id(top_id)
+    if aloj_id:
+        top_name = aloj_name_by_id(int(aloj_id))
+        top_rev = revenue
+    else:
+        if not df.empty and {"id_alojamiento", "precio_total"}.issubset(df.columns):
+            grp = df.groupby("id_alojamiento")["precio_total"].sum().sort_values(ascending=False)
+            if len(grp) > 0:
+                top_id = int(grp.index[0])
+                top_rev = float(grp.iloc[0])
+                top_name = aloj_name_by_id(top_id)
 
     return {
         "revenue": round(revenue, 2),
@@ -219,19 +247,22 @@ def compute_metrics(scope: str, year: int, month: int) -> dict:
     }
 
 
-def compute_series(year: int, kind: str) -> dict:
+def compute_series(year: int, kind: str, aloj_id: Optional[int] = None) -> dict:
     labels = [f"{m:02d}" for m in range(1, 13)]
     values: list[float] = []
 
     for m in range(1, 13):
-        met = compute_metrics(scope="month", year=year, month=m)
+        met = compute_metrics(scope="month", year=year, month=m, aloj_id=aloj_id)
         if kind == "occupancy":
             values.append(float(met.get("occupancy") or 0.0))
         else:
             values.append(float(met.get("revenue") or 0.0))
 
     title = ("Ocupación " if kind == "occupancy" else "Facturación ") + str(year)
+    if aloj_id:
+        title += f" · {aloj_name_by_id(int(aloj_id)) or aloj_id}"
     return {"labels": labels, "values": values, "title": title}
+
 
 
 def export_reservas_csv(
@@ -241,8 +272,9 @@ def export_reservas_csv(
     month: int,
     date_from: Optional[str],
     date_to: Optional[str],
+    aloj_id: Optional[int] = None,
 ) -> bytes:
-    items = list_reservas_filtered(scope, estado, year, month, date_from, date_to)
+    items = list_reservas_filtered(scope, estado, year, month, date_from, date_to, aloj_id=aloj_id)
     df = pd.DataFrame(items)
     csv_text = df.to_csv(index=False)
     return csv_text.encode("utf-8")

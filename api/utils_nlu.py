@@ -156,35 +156,59 @@ def parse_date_es(d: int, m: int, y: int | None) -> date | None:
 
 def extract_slots(t: str) -> dict:
     """Extrae fechas, pax, precios, id de alojamiento y datos de cliente (ES/EN)."""
-    text = t.lower().strip()
+    text_raw = (t or "").strip()
+    text = strip_accents(text_raw.lower())
 
     # -----------------
-    # Huéspedes (ES/EN)
+    # Huéspedes (multi-idioma: ES/EN/FR/DE/PT/IT)
     # -----------------
     guests = None
 
+    # Keywords normalizados (strip_accents): "gäste" -> "gaste", "invités" -> "invites"
+    GUEST_KEYWORDS = r"(?:huesped(?:es)?|invitad(?:o|os|a|as)?|persona(?:s)?|" \
+                     r"guest(?:s)?|people|person(?:s)?|pax|" \
+                     r"personne(?:s)?|invite(?:s)?|" \
+                     r"ospit(?:e|i)|persone|" \
+                     r"pessoa(?:s)?|" \
+                     r"gast(?:e|en)?|gaste|gaeste|personen?)"
+
     patterns = [
-        r"\b(\d+)\s*(personas|hu[eé]spedes|pax)\b",
+        rf"\b(\d+)\s*{GUEST_KEYWORDS}\b",          # "4 personen", "4 invites", "4 pessoas"
+        rf"\b{GUEST_KEYWORDS}\s*[:=]?\s*(\d+)\b",  # "personnes: 4"
         r"\bpara\s+(\d+)\b",
         r"\bsomos\s+(\d+)\b",
-        r"\b(\d+)\s*(guests?|people|persons?)\b",
-        r"\bfor\s+(\d+)\b",  # "book ... for 4"
+        r"\bfor\s+(\d+)\b",                        # "book ... for 4"
         r"\bwe\s+are\s+(\d+)\b",
+        r"\bwir\s+sind\s+(\d+)\b",                 # DE
+        r"\bnous\s+sommes\s+(\d+)\b",              # FR
+        r"\bsomos\s+(\d+)\b",                      # PT/ES
+        r"\bsiamo\s+(\d+)\b",                      # IT
     ]
+
     for pat in patterns:
         m = re.search(pat, text, re.I)
         if m:
-            guests = int(m.group(1))
-            break
+            # Algunos patrones usan group(1) o group(2)
+            val = None
+            if m.lastindex:
+                # si hay 2 grupos, usa el que no sea None
+                if m.lastindex >= 2:
+                    val = m.group(1) or m.group(2)
+                else:
+                    val = m.group(1)
+            if val and str(val).isdigit():
+                guests = int(val)
+                break
 
     # Si el mensaje es SOLO un número (típico: "4")
     if guests is None:
         only = text.replace(" ", "")
         if only.isdigit():
             n = int(only)
-            # limite razonable para no confundir con ID reserva (y tus alojamientos son <= 6)
+            # limite razonable para no confundir con ID reserva
             if 1 <= n <= 12:
                 guests = n
+
 
     # -----------------
     # Fechas (dd/mm[/aaaa] o dd-mm)

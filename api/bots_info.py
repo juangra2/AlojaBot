@@ -6,13 +6,10 @@ from typing import Dict, Any, List
 from .llm_client import chat_llm
 from .retriever import retrieve_chunks
 from .corpus_loader import CorpusChunk
+from .i18n import normalize_lang, translate_answer_if_needed
 
 
 def _build_context_from_chunks(chunks: List[CorpusChunk]) -> str:
-    """
-    Construye un bloque de contexto legible para el LLM
-    a partir de los chunks seleccionados.
-    """
     if not chunks:
         return "No hay contexto relevante disponible."
 
@@ -24,71 +21,65 @@ def _build_context_from_chunks(chunks: List[CorpusChunk]) -> str:
     return "\n\n---\n\n".join(partes)
 
 
-def info_bot_llm(user_message: str) -> Dict[str, Any]:
+def _translate_query_to_spanish_for_retrieval(user_message: str, lang: str) -> str:
     """
-    Info-bot real usando:
-    - RAG sencillo sobre el corpus (.md)
-    - GPT-4o mini para redactar la respuesta
-
-    Devuelve un dict compatible con ChatOut:
-      - answer: texto respuesta
-      - evidence: lista de trozos utilizados
+    Para que el retriever funcione bien con corpus en ES:
+    - si el usuario pregunta en otro idioma, traducimos la QUERY a ES (solo para recuperar chunks).
     """
-    # 1) Recuperar trozos relevantes del corpus
-    chunks = retrieve_chunks(user_message, k=6)
+    lang = normalize_lang(lang)
+    if lang == "es":
+        return user_message
 
-    # 2) Construir contexto para el LLM
+    system = (
+        "Eres un traductor. Traduce el mensaje a español SOLO para búsqueda interna.\n"
+        "REGLAS:\n"
+        "- Conserva nombres propios (Apartamento Mercedes, Casa Bruna, etc.).\n"
+        "- Conserva términos clave (Puy du Fou, Toledo).\n"
+        "- Devuelve SOLO la traducción, sin comentarios.\n"
+    )
+    out = chat_llm(system_prompt=system, user_prompt=user_message, model="gpt-4o-mini", temperature=0.0, max_tokens=120)
+    return (out or user_message).strip() or user_message
+
+
+def info_bot_llm(user_message: str, lang: str = "es") -> Dict[str, Any]:
+    """
+    Info-bot (RAG + LLM).
+    - Recuperación en ES (traduciendo query si hace falta)
+    - Redacción en ES (backend interno)
+    - La traducción al idioma final se hace en main.py (o aquí si quieres).
+    """
+    lang = normalize_lang(lang)
+
+    # 1) Query para retrieval (siempre ES)
+    query_es = _translate_query_to_spanish_for_retrieval(user_message, lang)
+
+    # 2) Recuperar chunks (sube k un poco para preguntas tipo "historia")
+    chunks = retrieve_chunks(query_es, k=8)
+
+    # 3) Contexto
     contexto = _build_context_from_chunks(chunks)
 
+    # 4) Prompt (más corto y SIN inventar)
     system_prompt = (
-        "Eres AlojaBot, un asistente para alojamientos turísticos en Cobisa (Toledo) "
-        "y su entorno.\n\n"
-        "TU COMPORTAMIENTO:\n"
-        "- Respondes SIEMPRE en español, de forma clara, cercana y educada.\n"
-        "- Hablas de tú al usuario, como un anfitrión/recepcionista amable.\n"
-        "- NO empieces siempre con 'Hola'. Usa un saludo solo si parece el primer "
-        "mensaje de la conversación o si el usuario te saluda explícitamente.\n"
-        "- Puedes usar EMOJIS, pero con moderación: entre 1 y 3 por respuesta, "
-        "colocados en frases clave (inicio o final). No abuses ni pongas uno en cada palabra.\n"
-        "- SOLO puedes usar la información que aparece en el contexto que te doy.\n"
-        "- Si el usuario pregunta algo que NO aparece en el contexto, debes decirlo "
-        "explícitamente (por ejemplo: 'esa información no la tengo en mi ficha') y, si encaja, "
-        "ofrecer que la persona pregunte algo más concreto.\n"
-        "- No inventes precios, disponibilidad, ni crees reservas. Eso lo gestiona "
-        "otro módulo del sistema.\n"
-        "- Puedes mencionar los nombres de los apartamentos (Mercedes, Arcos, Bruna, "
-        "Calera) y hablar de sus características, normas, equipamiento, etc., "
-        "siempre basándote en el contexto.\n"
-        "- Si te preguntan por qué hacer en Cobisa/Toledo o por Puy du Fou, usa "
-        "la información del contexto sobre entorno, restaurantes y planes.\n"
-        "- Organiza la respuesta en 13 párrafos cortos o una lista de puntos clara. "
-        "Evita respuestas muy largas."
+        "Eres AlojaBot (modo INFO), un asistente para alojamientos turísticos en Cobisa (Toledo).\n"
+        "IMPORTANTE:\n"
+        "- Respondes usando SOLO el contexto proporcionado.\n"
+        "- Si algo no está en el contexto, dilo claramente: 'Esa información no aparece en mi ficha'.\n"
+        "- NO inventes reformas, anécdotas, distancias ni normas si no están en el contexto.\n"
+        "- Responde en ESPAÑOL (luego el sistema puede traducir la respuesta).\n"
+        "- Sé breve: máximo 6 viñetas o 4 párrafos (ideal 120-150 palabras).\n"
+        "- 1-3 emojis como mucho.\n"
     )
-
 
     user_prompt = (
-        f"Pregunta del usuario:\n"
-        f"{user_message}\n\n"
-        f"Contexto relevante (no inventes nada que no aparezca aquí):\n"
-        f"---\n"
-        f"{contexto}\n"
-        f"---\n\n"
-        f"Instrucciones específicas para esta respuesta:\n"
-        f"- Responde con un tono cercano y amable, como si atendieras en recepción.\n"
-        f"- Usa entre 1 y 3 emojis que encajen con el contenido (por ejemplo, 🏡, 🌿, 🚗, 🍽️, 😊). "
-        f"No uses más de 3.\n"
-        f"- Si el contexto habla de un apartamento concreto, puedes recomendarlo "
-        f"explicando por qué encaja.\n"
-        f"- Si el usuario mezcla varias cosas (por ejemplo, alojamiento + planes "
-        f"en la zona), responde en un solo mensaje organizado.\n"
-        f"- No des información meteorológica aquí; solo describe alojamientos "
-        f"y entorno. El tiempo lo gestiona otro módulo."
+        f"Pregunta del usuario:\n{user_message}\n\n"
+        f"(Nota: para buscar en la base interna, la consulta equivalente en ES es: {query_es})\n\n"
+        f"Contexto relevante:\n---\n{contexto}\n---\n\n"
+        "Responde ahora."
     )
 
-    # 3) Llamar al LLM
-    answer_text = chat_llm(system_prompt=system_prompt, user_prompt=user_prompt)
+    answer_text = chat_llm(system_prompt=system_prompt, user_prompt=user_prompt, model="gpt-4o-mini", temperature=0.2, max_tokens=350)
 
-    # 4) Preparar evidencia para el panel derecho
     evidence: List[Dict[str, Any]] = []
     for ch in chunks:
         evidence.append(
@@ -104,7 +95,4 @@ def info_bot_llm(user_message: str) -> Dict[str, Any]:
             }
         )
 
-    return {
-        "answer": answer_text,
-        "evidence": evidence,
-    }
+    return {"answer": (answer_text or "").strip(), "evidence": evidence}

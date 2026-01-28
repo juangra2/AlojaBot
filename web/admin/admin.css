@@ -116,35 +116,56 @@ body{
   justify-content:flex-end;
 }
 
-/* LOGIN vertical */
+/* LOGIN centrado (tipo mockup) */
+.login-page{
+  min-height: calc(100vh - 110px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px 0 24px;
+}
+
 .login-card{
-  display:grid;
-  grid-template-columns: 1fr 360px;
-  gap:14px;
-  padding: 16px;
-  align-items:stretch;
+  width: min(440px, 100%);
+  padding: 22px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
 }
 
-.login-left{
+.login-hero{
   display:flex;
+  flex-direction:column;
   align-items:center;
-  padding: 6px 8px;
+  text-align:center;
+  gap:10px;
+  padding-top: 6px;
 }
 
-.login-logo{
-  display:flex;
-  align-items:center;
-  gap:14px;
+.logo-circle-xl{
+  width:72px;
+  height:72px;
+  font-size:22px;
+}
+
+.login-title{
+  margin: 0;
+  font-size:18px;
 }
 
 .login-form{
-  background: var(--panel2);
-  border:1px solid #222638;
-  border-radius: 14px;
-  padding: 14px;
+  background: transparent;
+  border: none;
+  padding: 0;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:10px;
+}
+
+.login-form .btn-primary{
+  width:100%;
+  padding: 12px 14px;
+  border-radius: 14px;
 }
 
 .error{
@@ -155,6 +176,7 @@ body{
   border-radius: 12px;
   font-size: 13px;
 }
+
 
 /* Dashboard layout */
 .dash{

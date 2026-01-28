@@ -18,6 +18,8 @@ from .admin_reports import (
     export_reservas_csv,
 )
 from .admin_actions import cancel_reserva, modify_reserva
+from .admin_store import load_alojamientos_df, aloj_name_by_id
+
 
 router = APIRouter(tags=["admin"])
 
@@ -58,27 +60,42 @@ def admin_login(inp: AdminLoginIn):
 def admin_me(_: None = Depends(require_admin)):
     return {"ok": True}
 
+@router.get("/alojamientos")
+def admin_alojamientos(_: None = Depends(require_admin)):
+    df = load_alojamientos_df()
+    if df.empty or "id" not in df.columns:
+        return {"ok": True, "items": []}
+
+    ids = sorted({int(x) for x in df["id"].dropna().tolist()})
+    items = [{"id": i, "nombre": (aloj_name_by_id(i) or f"Alojamiento {i}")} for i in ids]
+    return {"ok": True, "items": items}
+
+
 
 # =========================
 # MÉTRICAS + SERIES (GRÁFICAS)
 # =========================
+
 @router.get("/metrics")
 def admin_metrics(
     scope: str = Query("month", pattern="^(month|year|all)$"),
     year: int = Query(date.today().year, ge=2000, le=2100),
     month: int = Query(date.today().month, ge=1, le=12),
+    aloj_id: Optional[int] = Query(default=None),
     _: None = Depends(require_admin),
 ):
-    return compute_metrics(scope=scope, year=year, month=month)
+    return compute_metrics(scope=scope, year=year, month=month, aloj_id=aloj_id)
 
 
 @router.get("/series")
 def admin_series(
     year: int = Query(date.today().year, ge=2000, le=2100),
     kind: str = Query("revenue", pattern="^(revenue|occupancy)$"),
+    aloj_id: Optional[int] = Query(default=None),
     _: None = Depends(require_admin),
 ):
-    return compute_series(year=year, kind=kind)
+    return compute_series(year=year, kind=kind, aloj_id=aloj_id)
+
 
 
 # =========================
@@ -92,10 +109,11 @@ def admin_reservas(
     month: int = Query(date.today().month, ge=1, le=12),
     from_: Optional[str] = Query(default=None, alias="from"),
     to: Optional[str] = Query(default=None),
+    aloj_id: Optional[int] = Query(default=None, ge=1),
     _: None = Depends(require_admin),
 ):
     items = list_reservas_filtered(
-        scope=scope, estado=estado, year=year, month=month, date_from=from_, date_to=to
+        scope=scope, estado=estado, year=year, month=month, date_from=from_, date_to=to, aloj_id=aloj_id
     )
     return {"ok": True, "items": items}
 

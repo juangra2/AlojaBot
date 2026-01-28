@@ -33,29 +33,27 @@
       </header>
 
       <!-- LOGIN (vertical + logo) -->
-      <section id="loginView" class="card login-card">
-        <div class="login-left">
-          <div class="login-logo">
-            <div class="logo-circle logo-circle-lg">AB</div>
-            <div>
-              <h2>Acceso administración</h2>
-              <p class="muted">Login simple (hardcoded) para demo.</p>
-            </div>
+      <main id="loginView" class="login-page">
+        <section class="card login-card" aria-label="Acceso administración">
+          <div class="login-hero">
+            <div class="logo-circle logo-circle-xl">AB</div>
+            <h2 class="login-title">Acceso administración</h2>
+            <p class="muted small">Login simple (hardcoded) para demo.</p>
           </div>
-        </div>
 
-        <form id="loginForm" class="login-form">
-          <label class="label">Usuario</label>
-          <input id="loginUser" class="input" autocomplete="username" placeholder="admin" />
+          <form id="loginForm" class="login-form">
+            <label class="label">Usuario</label>
+            <input id="loginUser" class="input" autocomplete="username" placeholder="admin" />
 
-          <label class="label">Password</label>
-          <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="••••••••" />
+            <label class="label">Password</label>
+            <input id="loginPass" class="input" type="password" autocomplete="current-password" placeholder="••••••••" />
 
-          <button class="btn btn-primary" type="submit">Entrar</button>
+            <button class="btn btn-primary" type="submit">Entrar</button>
 
-          <p id="loginErr" class="error" style="display:none;"></p>
-        </form>
-      </section>
+            <p id="loginErr" class="error" style="display:none;"></p>
+          </form>
+        </section>
+      </main>
 
       <!-- DASHBOARD -->
       <main id="dashView" class="dash" style="display:none;">
@@ -76,9 +74,10 @@
                 <select id="metricsYear" class="select"></select>
                 <select id="metricsMonth" class="select"></select>
 
-                <button id="btnRefreshMetrics" class="btn btn-secondary" type="button">
-                  Actualizar
-                </button>
+                <!-- ✅ NUEVO: filtro alojamiento en MÉTRICAS -->
+                <select id="metricsAloj" class="select">
+                  <option value="all">todos</option>
+                </select>
               </div>
             </div>
 
@@ -159,6 +158,11 @@
 
               <input id="resFrom" class="input" type="date" style="display:none;" />
               <input id="resTo" class="input" type="date" style="display:none;" />
+
+              <!-- ✅ NUEVO: filtro alojamiento en RESERVAS -->
+              <select id="resAloj" class="select">
+                <option value="all">todos</option>
+              </select>
 
               <select id="resEstado" class="select">
                 <option value="creada">creada</option>

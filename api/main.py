@@ -16,7 +16,7 @@ from .domain_reservas import (
 from .utils_nlu import (
     strip_accents,
     extract_slots,
-    detect_lang as detect_lang_nlu,  
+    detect_lang as detect_lang_nlu,
     WEATHER_RE,
     TRANS_RE,
     RESERVA_RE,
@@ -25,7 +25,6 @@ from .utils_nlu import (
     CANCEL_RESERVA_RE,
     MODIF_RESERVA_RE,
 )
-
 
 from .session_flows import (
     SESS,
@@ -40,13 +39,19 @@ from .session_flows import (
 from .bots_info import info_bot_llm
 from .bots_sql import sql_buscar_bot
 from .bots_meteo import meteo_bot
-from .llm_client import chat_llm
 from .admin_routes import router as admin_router
 
+from .i18n import (
+    normalize_lang,
+    extract_explicit_lang,
+    translate_answer_if_needed,
+)
+
+from .orchestrator_llm import orchestrate_route_and_lang
+
+
 app = FastAPI(title="AlojaBot API (Excel + Reservas + Meteo + LLM Orquestador)")
-
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -69,40 +74,20 @@ class ChatOut(BaseModel):
     weather: str | None = None
 
 
-# -------------------------
-# Idioma: detectar + traducir
-# -------------------------
-
-def translate_text(text: str, target_lang: str) -> str:
-    if not text or target_lang == "es":
-        return text
-
-    sys = (
-        "You are a professional translator.\n"
-        f"Translate the text to {target_lang}.\n"
-        "IMPORTANT:\n"
-        "- Output ONLY the translation.\n"
-        "- Keep emojis, dates, numbers, prices, IDs, emails exactly.\n"
-        "- Keep line breaks.\n"
-        "- Do not add introductions or comments."
-        "- Return ONLY the translated text, with no preface, no explanations, no quotes."
-    )
-    out = chat_llm(sys, text, model="gpt-4o-mini")
-    return (out or text).strip()
-
 def localize_payload(payload: dict, lang: str) -> dict:
+    """
+    Backend interno ES -> traducimos aquí al idioma de sesión.
+    """
+    lang = normalize_lang(lang)
     if lang == "es":
         return payload
+
     if payload.get("answer"):
-        payload["answer"] = translate_text(payload["answer"], lang)
+        payload["answer"] = translate_answer_if_needed(payload["answer"], lang, source_lang="es")
     if payload.get("weather"):
-        payload["weather"] = translate_text(payload["weather"], lang)
+        payload["weather"] = translate_answer_if_needed(payload["weather"], lang, source_lang="es")
     return payload
 
-
-# -------------------------
-# Helpers: meter meteo dentro de answer
-# -------------------------
 
 def _append_to_answer(base: dict, extra: str) -> dict:
     extra = (extra or "").strip()
@@ -113,6 +98,59 @@ def _append_to_answer(base: dict, extra: str) -> dict:
     return base
 
 
+def _get_session_lang(session_id: str, user_text: str) -> str:
+    """
+    Idioma estable por sesión:
+    - Si el usuario pide explícitamente un idioma -> se cambia y se bloquea.
+    - Si ya hay idioma guardado y está bloqueado -> NO cambiamos aunque el texto tenga números/palabras raras.
+    - Si no hay idioma aún -> lo inferimos (LLM orquestador si está disponible; si no, heuristic).
+    """
+    sess = SESS.get(session_id, {})
+    prev = normalize_lang(sess.get("lang") or "es")
+    locked = bool(sess.get("lang_locked", False))
+
+    explicit = extract_explicit_lang(user_text)
+    if explicit:
+        sess["lang"] = normalize_lang(explicit)
+        sess["lang_locked"] = True
+        SESS[session_id] = sess
+        return sess["lang"]
+
+    # Si ya estaba bloqueado, mantenlo siempre (esto evita saltos ES<->DE por mensajes con fechas)
+    if locked and sess.get("lang"):
+        return prev
+
+    # Si ya hay idioma (aunque no esté bloqueado), mantenlo salvo señal fuerte
+    if sess.get("lang"):
+        # señal fuerte: texto largo y con muchas letras (no solo números/fechas)
+        letters = sum(ch.isalpha() for ch in user_text)
+        total = max(1, len(user_text))
+        alpha_ratio = letters / total
+        if len(user_text) >= 35 and alpha_ratio >= 0.55:
+            guess = normalize_lang(detect_lang_nlu(user_text, prev))
+            # si cambia, aceptamos y bloqueamos desde aquí
+            if guess != prev:
+                sess["lang"] = guess
+                sess["lang_locked"] = True
+                SESS[session_id] = sess
+                return guess
+
+        # por defecto, mantenemos prev
+        return prev
+
+    # Primera vez: usa orquestador para detectar idioma (más fiable que heurísticas)
+    try:
+        orch = orchestrate_route_and_lang(user_text=user_text, session_mode=None, session_has_pending=False, session_lang=None)
+        lang = normalize_lang(orch.lang)
+    except Exception:
+        lang = normalize_lang(detect_lang_nlu(user_text, "es"))
+
+    sess["lang"] = lang
+    sess["lang_locked"] = True
+    SESS[session_id] = sess
+    return lang
+
+
 @app.post("/chat", response_model=ChatOut)
 def chat(inp: ChatIn):
     text = inp.message.strip()
@@ -120,10 +158,8 @@ def chat(inp: ChatIn):
     session_id = inp.session_id or "default"
 
     sess = SESS.get(session_id, {})
-    lang = detect_lang_nlu(text, sess.get("lang"))
-    sess["lang"] = lang
-    SESS[session_id] = sess
-
+    lang = _get_session_lang(session_id, text)
+    sess = SESS.get(session_id, {})  # refresca por si _get_session_lang escribió
     slots = extract_slots(text)
 
     # completar aloj_id por nombre
@@ -141,13 +177,12 @@ def chat(inp: ChatIn):
 
     mode = sess.get("mode")
 
-    # 0) Continuación del meteo (cuando antes pedimos fechas)
+    # 0) Continuación meteo (si antes pedimos fechas)
     if sess.get("awaiting_weather_dates") and mode not in ("reservar", "cancelar", "modificar"):
         met = meteo_bot(slots, session_id)
-        # si ya hemos podido dar pronóstico, limpiamos flag
         if not met.get("needs_dates"):
             sess.pop("awaiting_weather_dates", None)
-        # en UI solo se ve answer, así que lo metemos ahí
+            SESS[session_id] = sess
         out = {"answer": met.get("weather") or "⚠️ No he podido obtener el pronóstico.", **met}
         return localize_payload(out, lang)
 
@@ -160,6 +195,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     if mode == "cancelar":
@@ -170,6 +206,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     if mode == "modificar":
@@ -180,6 +217,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     # 2) Intenciones post-reserva
@@ -191,6 +229,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     if wants_modificar_reserva:
@@ -201,6 +240,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     if wants_consulta:
@@ -211,6 +251,7 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
     # 3) Crear reserva
@@ -222,9 +263,10 @@ def chat(inp: ChatIn):
             base.update(met)
             if met.get("needs_dates"):
                 sess["awaiting_weather_dates"] = True
+                SESS[session_id] = sess
         return localize_payload(base, lang)
 
-    # 4) Búsqueda + meteo (IMPORTANTE: unir en answer)
+    # 4) Búsqueda + meteo
     if wants_trans and wants_weather:
         base = sql_buscar_bot(slots)
         met = meteo_bot(slots, session_id)
@@ -232,6 +274,7 @@ def chat(inp: ChatIn):
         base.update(met)
         if met.get("needs_dates"):
             sess["awaiting_weather_dates"] = True
+            SESS[session_id] = sess
         return localize_payload(base, lang)
 
     if wants_trans:
@@ -243,10 +286,11 @@ def chat(inp: ChatIn):
         out = {"answer": met.get("weather") or "⚠️ No he podido obtener el pronóstico.", **met}
         if met.get("needs_dates"):
             sess["awaiting_weather_dates"] = True
+            SESS[session_id] = sess
         return localize_payload(out, lang)
 
-    # 6) Default: info-bot (RAG+LLM)
-    out = info_bot_llm(text)
+    # 6) Default: info-bot (RAG+LLM) + retrieval multidioma
+    out = info_bot_llm(text, lang=lang)
     return localize_payload(out, lang)
 
 

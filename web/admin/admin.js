@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000/admin"; // <-- antes tenías /admin/api
+const API_BASE = "http://localhost:8000/admin";
 
 let token = localStorage.getItem("ADMIN_TOKEN") || null;
 let chart = null;
@@ -17,6 +17,23 @@ function fmtPct(x) {
   if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
   return `${(Number(x) * 100).toFixed(2)}%`;
 }
+
+function cleanCell(v) {
+  if (v === null || v === undefined) return "";
+  const s = String(v).trim();
+  if (!s) return "";
+  const low = s.toLowerCase();
+  if (low === "nan" || low === "none" || low === "null" || low === "undefined") return "";
+  return s;
+}
+
+// Quita el .0 final típico de Excel (ej: "609298323.0" -> "609298323")
+function fmtPhone(v) {
+  const s = cleanCell(v);
+  if (!s) return "";
+  return s.replace(/\.0+$/, "");
+}
+
 function nightsBetween(a, b) {
   const d1 = new Date(a);
   const d2 = new Date(b);
@@ -27,14 +44,14 @@ function nightsBetween(a, b) {
 async function api(path, opts = {}) {
   const headers = opts.headers || {};
   headers["Content-Type"] = "application/json";
-
-  // backend usa X-Admin-Token
   if (token) headers["X-Admin-Token"] = token;
 
   const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
 
   const ct = res.headers.get("content-type") || "";
-  const payload = ct.includes("application/json") ? await res.json().catch(() => null) : await res.text().catch(() => "");
+  const payload = ct.includes("application/json")
+    ? await res.json().catch(() => null)
+    : await res.text().catch(() => "");
 
   if (!res.ok) {
     const msg = typeof payload === "string" ? payload : (payload?.detail || payload?.message || "");
@@ -68,6 +85,57 @@ function fillMonths(selectId) {
     if (Number(n) === m) opt.selected = true;
     sel.appendChild(opt);
   });
+}
+
+/**
+ * ✅ NUEVO: rellena los selects de alojamientos (metricsAloj y resAloj)
+ * desde /alojamientos.
+ */
+async function loadAlojamientosSelects() {
+  const selMetrics = el("metricsAloj");
+  const selRes = el("resAloj");
+
+  // Si no existen en el DOM, no hacemos nada.
+  if (!selMetrics && !selRes) return;
+
+  const prevMetrics = selMetrics ? (selMetrics.value || "all") : "all";
+  const prevRes = selRes ? (selRes.value || "all") : "all";
+
+  if (selMetrics) selMetrics.innerHTML = `<option value="all">todos</option>`;
+  if (selRes) selRes.innerHTML = `<option value="all">todos</option>`;
+
+  try {
+    const out = await api("/alojamientos");
+    (out.items || []).forEach((it) => {
+      const id = String(it.id);
+      const name = it.nombre;
+
+      if (selMetrics) {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = name;
+        selMetrics.appendChild(opt);
+      }
+      if (selRes) {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = name;
+        selRes.appendChild(opt);
+      }
+    });
+
+    // Restaurar selección previa si sigue existiendo
+    if (selMetrics) {
+      const ok = [...selMetrics.options].some(o => o.value === prevMetrics);
+      selMetrics.value = ok ? prevMetrics : "all";
+    }
+    if (selRes) {
+      const ok = [...selRes.options].some(o => o.value === prevRes);
+      selRes.value = ok ? prevRes : "all";
+    }
+  } catch (e) {
+    // no bloqueamos el panel si falla
+  }
 }
 
 function setScopeUI(scope, yearEl, monthEl) {
@@ -105,13 +173,10 @@ function renderChart(labels, data, title) {
   });
 }
 
-
-
 // =======================
 // LOGIN
 // =======================
 async function doLogin(user, pass) {
-  // backend espera username/password y devuelve {ok, token}
   const out = await api("/login", {
     method: "POST",
     body: JSON.stringify({ username: user, password: pass })
@@ -151,7 +216,12 @@ async function loadMetrics() {
   const year = Number(el("metricsYear").value);
   const month = Number(el("metricsMonth").value);
 
-  const q = new URLSearchParams({ scope, year: String(year), month: String(month) });
+  const alojVal = el("metricsAloj") ? (el("metricsAloj").value || "all") : "all";
+
+  const qObj = { scope, year: String(year), month: String(month) };
+  if (alojVal && alojVal !== "all") qObj.aloj_id = String(alojVal);
+
+  const q = new URLSearchParams(qObj);
   const m = await api(`/metrics?${q.toString()}`);
 
   el("kpiRevenue").textContent = fmtEUR(m.revenue);
@@ -163,17 +233,40 @@ async function loadMetrics() {
 
   const chartKind = el("chartType").value;
   const chartYear = (scope === "all") ? new Date().getFullYear() : year;
-  const qs = new URLSearchParams({ year: String(chartYear), kind: chartKind });
+
+  const qsObj = { year: String(chartYear), kind: chartKind };
+  if (alojVal && alojVal !== "all") qsObj.aloj_id = String(alojVal);
+
+  const qs = new URLSearchParams(qsObj);
   const series = await api(`/series?${qs.toString()}`);
 
   renderChart(series.labels, series.values, series.title);
 }
 
-el("btnRefreshMetrics").addEventListener("click", loadMetrics);
+// el("btnRefreshMetrics").addEventListener("click", loadMetrics);
 el("chartType").addEventListener("change", loadMetrics);
 el("metricsScope").addEventListener("change", () => {
   setScopeUI(el("metricsScope").value, el("metricsYear"), el("metricsMonth"));
 });
+// ✅ Auto-refresh métricas al cambiar cualquier filtro
+const metricsIds = ["metricsScope", "metricsYear", "metricsMonth", "metricsAloj", "chartType"];
+metricsIds.forEach((id) => {
+  const node = el(id);
+  if (!node) return;
+  node.addEventListener("change", loadMetrics);
+});
+
+// Si cambias scope, además de refrescar, ajusta visibilidad year/month
+el("metricsScope").addEventListener("change", () => {
+  setScopeUI(el("metricsScope").value, el("metricsYear"), el("metricsMonth"));
+  loadMetrics();
+});
+
+
+/* ✅ NUEVO: al cambiar alojamiento en métricas, refresca */
+if (el("metricsAloj")) {
+  el("metricsAloj").addEventListener("change", loadMetrics);
+}
 
 // =======================
 // RESERVAS
@@ -213,6 +306,11 @@ async function loadReservas() {
   const month = Number(el("resMonth").value);
 
   const params = { scope, estado, year: String(year), month: String(month) };
+
+  // ✅ NUEVO: filtro alojamiento en RESERVAS
+  const alojId = el("resAloj") ? (el("resAloj").value || "all") : "all";
+  if (alojId !== "all") params.aloj_id = String(alojId);
+
   if (scope === "range") {
     params.from = el("resFrom").value || "";
     params.to = el("resTo").value || "";
@@ -240,8 +338,8 @@ async function loadReservas() {
       <td>${badgeEstado(r.estado)}</td>
       <td>${r.cliente_nombre ?? ""}</td>
       <td>${r.cliente_email ?? ""}</td>
-      <td>${r.cliente_tel ?? ""}</td>
-      <td>${r.cliente_dni ?? ""}</td>
+      <td>${fmtPhone(r.cliente_tel)}</td>
+      <td>${cleanCell(r.cliente_dni)}</td>
       <td>${(r.created_at ?? "").toString().slice(0, 19)}</td>
       <td>${actionButtons(r)}</td>
     `;
@@ -250,6 +348,7 @@ async function loadReservas() {
 }
 
 el("btnLoadRes").addEventListener("click", loadReservas);
+if (el("resAloj")) el("resAloj").addEventListener("change", loadReservas);
 
 // Export CSV
 el("btnExportCsv").addEventListener("click", async () => {
@@ -259,6 +358,10 @@ el("btnExportCsv").addEventListener("click", async () => {
   const month = Number(el("resMonth").value);
 
   const params = { scope, estado, year: String(year), month: String(month) };
+
+  const alojId = (el("resAloj")?.value || "all");
+  if (alojId !== "all") params.aloj_id = String(alojId);
+
   if (scope === "range") {
     params.from = el("resFrom").value || "";
     params.to = el("resTo").value || "";
@@ -267,7 +370,7 @@ el("btnExportCsv").addEventListener("click", async () => {
 
   const url = `${API_BASE}/export?${q.toString()}`;
   const res = await fetch(url, {
-    headers: { "X-Admin-Token": token } // <-- antes Authorization Bearer
+    headers: { "X-Admin-Token": token }
   });
 
   if (!res.ok) {
@@ -285,7 +388,6 @@ el("btnExportCsv").addEventListener("click", async () => {
 // =======================
 // MODAL cancelar
 // =======================
-
 const cancelModal = el("cancelModal");
 const cancelSub = el("cancelSub");
 const cancelErr = el("cancelErr");
@@ -327,9 +429,6 @@ el("btnCancelYes").addEventListener("click", async () => {
     cancelErr.textContent = `⚠️ ${err.message}`;
   }
 });
-
-
-
 
 // =======================
 // MODAL editar
@@ -403,11 +502,10 @@ el("resTable").addEventListener("click", async (e) => {
   const id = btn.dataset.id;
   if (!act || !id) return;
 
-  
   if (act === "cancel") {
     const out = await api(`/reserva/${id}`);
     openCancelModal(out.item);
-  } 
+  }
 
   if (act === "edit") {
     const out = await api(`/reserva/${id}`);
@@ -483,6 +581,7 @@ async function boot() {
 
     try {
       await doLogin(user, pass);
+      await loadAlojamientosSelects();
       await loadMetrics();
       await loadReservas();
       enterDash();
@@ -495,22 +594,23 @@ async function boot() {
     }
   });
 
-  // autologin: intenta cargar y si falla (401), vuelve a login
-    if (token) {
+  // autologin
+  if (token) {
     try {
-        await api("/me");        
-        enterDash();
-        await loadMetrics();
-        await loadReservas();
-        addChatMsg("bot", "✅ Sesión admin restaurada.");
+      await api("/me");
+      enterDash();
+      await loadAlojamientosSelects(); // ✅ primero rellena selects
+      await loadMetrics();
+      await loadReservas();
+      addChatMsg("bot", "✅ Sesión admin restaurada.");
     } catch (e) {
-        token = null;
-        localStorage.removeItem("ADMIN_TOKEN");
-        enterLogin();
+      token = null;
+      localStorage.removeItem("ADMIN_TOKEN");
+      enterLogin();
     }
-    } else {
+  } else {
     enterLogin();
-    }
+  }
 }
 
 boot();
