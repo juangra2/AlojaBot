@@ -1,0 +1,29 @@
+lógica dni y teléfono - que sean telefonos y dni
+
+añadir al corpus la lógica de descuento y al agente
+- índice - 
+
+introducción mirar que no sea repetitivo. Quitar alcance.
+
+Marco teorico bien, ver que hay implementado, justifcar modelos, ver que hay disponibles. Hablar llm. Privacidad de los datos, buscar. 2.1 y 2.5 juntarlos. 
+
+
+3, juntar los dos puntos sin punto 1. 
+
+4 metodología. Para la información que me dan las personas, TOPIC MODELING y ahí explicar. Forms y entrenar modelo. 4.1 fuera
+4.5 consideraciones sobre llms, privacidad y recursos
+
+
+5, 6 y 7  -> 5.1 fuera ya explico antes, 5.3 fuera
+5.4 instrucciones que le doy al llm.
+5.5 meterologia - api y demás
+5.6 bien
+5.7 con 5.4 instrucciones
+6.3 y 6.4, interfaces
+
+7. Resultados
+poner resultados de forms, 
+estadística de tokens. MEJORA CONTINUA Y APLICACION FINAL. sacar resultados. 
+
+8 y 9 Juntos y hablar de todo un poco. 6.5
+
