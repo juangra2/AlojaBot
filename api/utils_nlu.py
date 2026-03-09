@@ -256,8 +256,15 @@ def extract_slots(t: str) -> dict:
     m_email = re.search(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}", t, re.I)
     cliente_email = m_email.group(0) if m_email else None
 
-    m_tel = re.search(r"\b(\+?\d[\d\s\-]{7,}\d)\b", t)
-    cliente_tel = re.sub(r"\s+", "", m_tel.group(1)) if m_tel else None
+    m_tel = re.search(r"\b(\+?\d[\d\s\-().]{7,}\d)\b", t)
+    if m_tel:
+        raw_tel = m_tel.group(1).strip()
+        # conserva '+' si venía, elimina separadores
+        has_plus = raw_tel.startswith("+")
+        digits = re.sub(r"\D+", "", raw_tel)
+        cliente_tel = ("+" + digits) if (has_plus and digits) else (digits if digits else None)
+    else:
+        cliente_tel = None
 
     raw = t.upper().replace(" ", "").replace("-", "")
     cliente_dni = None

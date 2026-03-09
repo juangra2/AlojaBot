@@ -1,6 +1,10 @@
-lógica dni y teléfono - que sean telefonos y dni
-
 añadir al corpus la lógica de descuento y al agente
+
+decir a chatgpt, que me cree excel de reservas y calendario para tener mas datos
+
+Crear forms y que miren
+
+
 - índice - 
 
 introducción mirar que no sea repetitivo. Quitar alcance.
@@ -10,8 +14,13 @@ Marco teorico bien, ver que hay implementado, justifcar modelos, ver que hay dis
 
 3, juntar los dos puntos sin punto 1. 
 
+Fuentes de datos del proyecto
+Preparación del corpus
+
+------------------------------------
+
 4 metodología. Para la información que me dan las personas, TOPIC MODELING y ahí explicar. Forms y entrenar modelo. 4.1 fuera
-4.5 consideraciones sobre llms, privacidad y recursos
+4.4 consideraciones sobre llms, privacidad y recursos
 
 
 5, 6 y 7  -> 5.1 fuera ya explico antes, 5.3 fuera
