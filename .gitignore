@@ -21,3 +21,5 @@ data/*.xls
 
 #Notas locales
 quedecir.txt
+
+.claude/
