@@ -256,7 +256,7 @@ def extract_slots(t: str) -> dict:
     m_email = re.search(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}", t, re.I)
     cliente_email = m_email.group(0) if m_email else None
 
-    m_tel = re.search(r"\b(\+?\d[\d\s\-().]{7,}\d)\b", t)
+    m_tel = re.search(r"(?<![\w+])(\+?\d[\d\s\-().]{7,}\d)\b", t)
     if m_tel:
         raw_tel = m_tel.group(1).strip()
         # conserva '+' si venía, elimina separadores
@@ -266,14 +266,19 @@ def extract_slots(t: str) -> dict:
     else:
         cliente_tel = None
 
-    raw = t.upper().replace(" ", "").replace("-", "")
     cliente_dni = None
-    m_nie = NIE_RE.search(raw)
-    m_dni = DNI_RE.search(raw)
-    if m_nie:
-        cliente_dni = m_nie.group(1).upper()
-    elif m_dni:
-        cliente_dni = m_dni.group(1).upper()
+    # Probamos primero sobre el texto original (conserva los límites de palabra
+    # de frases como "mi DNI es 20202020M"); si no hay match, probamos sin
+    # espacios/guiones (para DNI escrito como "12345678 Z" o "X1234567-L").
+    for raw in (t.upper(), t.upper().replace(" ", "").replace("-", "")):
+        m_nie = NIE_RE.search(raw)
+        m_dni = DNI_RE.search(raw)
+        if m_nie:
+            cliente_dni = m_nie.group(1).upper()
+            break
+        elif m_dni:
+            cliente_dni = m_dni.group(1).upper()
+            break
 
     cliente_nombre = None
 

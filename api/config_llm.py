@@ -1,7 +1,12 @@
 # api/config_llm.py
 import os
+from pathlib import Path
 
-OPENAI_API_KEY = "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"
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Modelo para AlojaBot
 LLM_MODEL = "gpt-4o-mini"
