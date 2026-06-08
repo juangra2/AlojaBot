@@ -441,7 +441,7 @@ def handle_reserva_with_session(session_id: str, text: str, slots: dict) -> dict
 
             nombre_aloj = nombre_de(p["aloj_id"])
 
-            enviar_confirmacion_reserva(
+            correo_enviado = enviar_confirmacion_reserva(
                 reserva_id=rid,
                 nombre_alojamiento=nombre_aloj,
                 check_in=p["check_in"],
@@ -455,6 +455,11 @@ def handle_reserva_with_session(session_id: str, text: str, slots: dict) -> dict
                 cliente_email=p.get("cliente_email"),
                 lang=sess.get("lang", "es"),
             )
+            extra_email = (
+                "\n📧 Te hemos enviado un correo con toda la información de tu reserva."
+                if correo_enviado
+                else ""
+            )
 
             return {
                 "answer": (
@@ -465,6 +470,7 @@ def handle_reserva_with_session(session_id: str, text: str, slots: dict) -> dict
                     f"- 💶 Importe total: {total} €\n"
                     f"{extra_disc}\n"
                     f"He bloqueado el calendario para esas fechas. 📌"
+                    f"{extra_email}"
                 )
             }
 

@@ -71,28 +71,93 @@ def enviar_confirmacion_reserva(
     noches = max(1, (check_out - check_in).days)
     descuento_txt = f"{round(descuento_pct * 100)}%" if descuento_pct else "0%"
 
-    html = f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; color: #222;">
-        <h2>AlojaBot</h2>
-        <p>Hola {cliente_nombre or ''},</p>
-        <p>{saludo}</p>
-        <ul>
-          <li><strong>Reserva:</strong> #{reserva_id}</li>
-          <li><strong>Alojamiento:</strong> {nombre_alojamiento}</li>
-          <li><strong>Check-in:</strong> {check_in}</li>
-          <li><strong>Check-out:</strong> {check_out}</li>
-          <li><strong>Noches:</strong> {noches}</li>
-          <li><strong>Huéspedes:</strong> {huespedes}</li>
-          <li><strong>Precio base/noche:</strong> {precio_noche_base} €</li>
-          <li><strong>Descuento aplicado:</strong> {descuento_txt}</li>
-          <li><strong>Precio final/noche:</strong> {precio_noche_final} €</li>
-          <li><strong>Total:</strong> {precio_total} €</li>
-        </ul>
-        <p>¡Esperamos darte la bienvenida pronto! 🙂</p>
-      </body>
-    </html>
-    """
+    html = f"""\
+<html>
+  <body style="margin:0; padding:0; background-color:#f4f4f7; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; max-width:600px; width:100%; border:1px solid #e3e6ec;">
+            <!-- Cabecera -->
+            <tr>
+              <td style="background-color:#1f3a5f; padding:28px 32px;">
+                <span style="font-size:22px; font-weight:bold; color:#ffffff; letter-spacing:0.5px;">AlojaBot</span>
+                <div style="font-size:13px; color:#cdd7e4; margin-top:4px;">Cobisa · Toledo</div>
+              </td>
+            </tr>
+            <!-- Saludo -->
+            <tr>
+              <td style="padding:28px 32px 12px 32px;">
+                <p style="margin:0 0 8px 0; font-size:16px; color:#222222;">Hola {cliente_nombre or ''},</p>
+                <p style="margin:0; font-size:15px; color:#444444; line-height:1.5;">{saludo}</p>
+              </td>
+            </tr>
+            <!-- Tarjeta de detalles -->
+            <tr>
+              <td style="padding:12px 32px 8px 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f9fb; border:1px solid #e3e6ec;">
+                  <tr>
+                    <td style="padding:16px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Reserva</td>
+                    <td style="padding:16px 20px; font-size:14px; color:#1f3a5f; font-weight:bold; text-align:right; border-bottom:1px solid #e3e6ec;">#{reserva_id}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Alojamiento</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{nombre_alojamiento}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Check-in</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{check_in}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Check-out</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{check_out}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Noches</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{noches}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Huéspedes</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{huespedes}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Precio base/noche</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{precio_noche_base} €</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Descuento aplicado</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#1f8a4c; font-weight:bold; text-align:right; border-bottom:1px solid #e3e6ec;">{descuento_txt}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 20px; font-size:14px; color:#666666; border-bottom:1px solid #e3e6ec;">Precio final/noche</td>
+                    <td style="padding:14px 20px; font-size:14px; color:#222222; text-align:right; border-bottom:1px solid #e3e6ec;">{precio_noche_final} €</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:16px 20px; font-size:15px; color:#1f3a5f; font-weight:bold;">Total</td>
+                    <td style="padding:16px 20px; font-size:18px; color:#1f3a5f; font-weight:bold; text-align:right;">{precio_total} €</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- Despedida -->
+            <tr>
+              <td style="padding:20px 32px 28px 32px;">
+                <p style="margin:0; font-size:15px; color:#444444;">¡Esperamos darte la bienvenida pronto! 🙂</p>
+              </td>
+            </tr>
+            <!-- Pie de página -->
+            <tr>
+              <td style="background-color:#f4f4f7; padding:18px 32px; border-top:1px solid #e3e6ec;">
+                <p style="margin:0; font-size:12px; color:#9a9a9a; text-align:center;">AlojaBot · Cobisa, Toledo · Correo automático de confirmación</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
 
     msg = MIMEText(html, "html", "utf-8")
     msg["Subject"] = asunto
