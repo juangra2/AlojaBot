@@ -13,3 +13,11 @@ __pycache__/
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+# Datos locales / ficheros Excel
+data/*.xlsx
+data/*.xls
+~$*.xlsx
+
+#Notas locales
+quedecir.txt
