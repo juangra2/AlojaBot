@@ -27,6 +27,7 @@ from .utils_nlu import (
     RESERVA_ID_RE,
 )
 from .pricing import dynamic_discount_pct, apply_discount
+from .utils_email import enviar_confirmacion_reserva
 
 
 # --- Memoria de sesión (en RAM) ---
@@ -439,6 +440,22 @@ def handle_reserva_with_session(session_id: str, text: str, slots: dict) -> dict
                 )
 
             nombre_aloj = nombre_de(p["aloj_id"])
+
+            enviar_confirmacion_reserva(
+                reserva_id=rid,
+                nombre_alojamiento=nombre_aloj,
+                check_in=p["check_in"],
+                check_out=p["check_out"],
+                huespedes=p["huespedes"],
+                precio_noche_base=pn_base,
+                descuento_pct=disc,
+                precio_noche_final=pn_final,
+                precio_total=total,
+                cliente_nombre=p.get("cliente_nombre"),
+                cliente_email=p.get("cliente_email"),
+                lang=sess.get("lang", "es"),
+            )
+
             return {
                 "answer": (
                     f"✅ Reserva creada (ID {rid}).\n"
