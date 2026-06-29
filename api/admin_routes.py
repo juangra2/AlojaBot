@@ -26,8 +26,8 @@ router = APIRouter(tags=["admin"])
 # =========================
 # LOGIN HARDCODED (DEMO)
 # =========================
-ADMIN_USERNAME = "admin"         # <-- CAMBIA AQUÍ
-ADMIN_PASSWORD = "admin123"      # <-- CAMBIA AQUÍ
+ADMIN_USERNAME = "admin"         
+ADMIN_PASSWORD = "admin123"     
 
 # Token estable (cambia si cambias user/pass)
 _ADMIN_TOKEN = hashlib.sha256(

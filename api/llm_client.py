@@ -56,7 +56,6 @@ def chat_llm(
             max_tokens=max_tokens,
         )
     except Exception as e:
-        # Aquí NO reventamos la API; devolvemos un texto que el usuario pueda entender.
         return (
             "⚠️ Ahora mismo no puedo consultar la información con el modelo de lenguaje.\n"
             "Inténtalo de nuevo en unos minutos.\n"
