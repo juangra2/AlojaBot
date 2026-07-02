@@ -107,6 +107,24 @@ NIE_RE = re.compile(r"\b([XYZ]\d{7}[A-Z])\b", re.I)
 # =========================
 DATE_RE = re.compile(r"\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b")
 
+# Fechas en formato natural (ES): "del 13 al 15 de agosto", "13 de agosto de 2026"
+# (se aplican sobre texto en minúsculas y sin acentos)
+_MESES_ES = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
+_MES_RE = "(" + "|".join(_MESES_ES) + ")"
+
+# "del 13 al 15 de agosto [de 2026]" (ambos días del mismo mes)
+DATE_NAT_RANGE_RE = re.compile(
+    rf"(?<![\d/\-.])\b(\d{{1,2}})\s+al?\s+(\d{{1,2}})\s+de\s+{_MES_RE}(?:\s+del?\s+(\d{{4}}))?\b"
+)
+# "13 de agosto [de 2026]"
+DATE_NAT_SINGLE_RE = re.compile(
+    rf"(?<![\d/\-.])\b(\d{{1,2}})\s+de\s+{_MES_RE}(?:\s+del?\s+(\d{{4}}))?\b"
+)
+
 # ID reserva: "reserva 12", "reservation 12", "booking 12", "reserva nº 12"
 RESERVA_ID_RE = re.compile(
     r"\b(?:reserva|reservation|booking)\s*(?:n[ºo.]*)?\s*(\d+)\b",
@@ -211,15 +229,42 @@ def extract_slots(t: str) -> dict:
 
 
     # -----------------
-    # Fechas (dd/mm[/aaaa] o dd-mm)
+    # Fechas (dd/mm[/aaaa], dd-mm o natural: "del 13 al 15 de agosto")
     # -----------------
-    matches = DATE_RE.findall(t)
-    parsed: list[date] = []
-    for dd, mm, yy in matches:
+    # Guardamos (posición, orden, fecha) para respetar el orden de aparición
+    # aunque se mezclen formatos numéricos y naturales.
+    found: list[tuple[int, int, date]] = []
+
+    for m in DATE_RE.finditer(t):
+        yy = m.group(3)
         y = int(yy) if yy else None
-        d = parse_date_es(int(dd), int(mm), y)
+        d = parse_date_es(int(m.group(1)), int(m.group(2)), y)
         if d:
-            parsed.append(d)
+            found.append((m.start(), 0, d))
+
+    consumed: list[tuple[int, int]] = []
+    for m in DATE_NAT_RANGE_RE.finditer(text):
+        y = int(m.group(4)) if m.group(4) else None
+        mes = _MESES_ES[m.group(3)]
+        f1 = parse_date_es(int(m.group(1)), mes, y)
+        f2 = parse_date_es(int(m.group(2)), mes, y)
+        if f1:
+            found.append((m.start(), 0, f1))
+        if f2:
+            found.append((m.start(), 1, f2))
+        consumed.append(m.span())
+
+    for m in DATE_NAT_SINGLE_RE.finditer(text):
+        # Evita duplicar el día final de un rango ya capturado ("...15 de agosto")
+        if any(a <= m.start() < b for a, b in consumed):
+            continue
+        y = int(m.group(3)) if m.group(3) else None
+        d = parse_date_es(int(m.group(1)), _MESES_ES[m.group(2)], y)
+        if d:
+            found.append((m.start(), 0, d))
+
+    found.sort(key=lambda x: (x[0], x[1]))
+    parsed = [f for _, _, f in found]
 
     check_in, check_out = (parsed[0], parsed[1]) if len(parsed) >= 2 else (None, None)
 
